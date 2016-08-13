@@ -1,0 +1,201 @@
+---
+title: "Notes"
+author: "Gustavo Mercier"
+date: "July 21, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Notes on Natural Language Processing
+
+# Notation
+
+A string is a discrete and finite ordered set of tokens: $W_k^L = \{w_1, w_2, ..., w_{L-1}, w_L\}$. Tokens are units of the language that cannot be subset, i.e. they are atomic. In our context words are the tokens of the language. The unordered set of all tokens is the dictionary of the language.
+
+The reference to _tokens_ instead of _words_ is to account for special circumstances such as the begining and ending of sentences. The sentence, _This is a sentence._, has the string representation $\{This,is,a,sentence.\}$. Notice that in this other example, _the example, "This is a sentence.", is not the same_, is different. In this case it is $\{"This, is, a, sentence."\}$. However, in a dictionary entries like _This_ and _sentence._ are no different from _this_ and _sentence_.
+
+Applying a statistical analysis to linguistics we consider a string, $W_k^L$, a random variable. Using conditional probabilities we can compute the probability of finding a given string:
+
+$$
+P(W_k^L) = \prod_{i=1}^L P(w_i|W_k^{i-1})
+$$
+
+Behind this computation is the model of a Markov chain. A Markov chain consists of a sequence of instances (or states): $s_1 \rightarrow s_2 \rightarrow s_3 \rightarrow ... s_n$. It is common to label the sequence of states by the last entry, but to make it clear the state at the completion of the sequence $s_1, ..., s_n$ will be labeled state $S_n$.
+
+The probability of reaching state $S_j$ depends in the sequence of all previous states. So the probability for the transition $S_i \rightarrow S_k$ is $P(S_k|S_i,S_{i-1},...,S_1)$ However, a common approximation is to disregard some of the older (earliest) states. The idea is that the process lacks long term memory, and does not _recall_ all the steps to get to where it is. The extreme is to disregard all previous states, except the most recent one, $P(S_k|S_i,S_{i-1},...,S_1) \approx P(S_k|S_i)$. 
+
+The same idea can be applied to the probability of the strings. In this case each state consists of the partially constructed substrings. The sequence of states $S_1,...,S_i$ implies a final state with the string $w_1,...,w_i$. However, the sequence of states $S_n, ...., S_i$ implies a string $w_n,...,w_i$ where tokens $w_1,...w_{n-1}$ are disregarded in computing the conditional probabilities. This means we keep $i-(n-1)$ tokens. 
+
+To include this in our notation for strings, $W_k^L$, we simply replace $k = i-(n-1) = i - n + 1$. This leaves us with the Markov approximation:
+
+$$
+P(W_k^L) = \prod_{i=1}^L P(w_i|W_k^{i-1}) \approx \prod_{i=1}^L \hat{P}(w_i|W_{i-n+1}^{i-1})
+$$
+
+
+## Notes on text encoding
+
+The default character encoding in my computer is en_US.UTF-8. This encoding includes the traditional ASCII characters as a subset. For details of the ASCII character set see
+<http://www.ascii-code.com/>. For details of UTF-8 see <https://www.wikiwand.com/en/UTF-8>
+
+The ASCII character set is single byte encoding. The unix/linux utility `{wc}` can count characters with single byte encoding as is the case with ASCII text using `wc -c`, but the count can be extended to include multi-byte characters using a different option, `wc -m`. If only single character encoding is present, then the output of both options should be the same. This can be used to test for multi-byte characters not present in the ASCII code.
+
+We can get rid of lines that contain non-ascii characters by using regular expressions and utilities like `awk`. Regular expressions encapsulate groups of characters by using character classes (<http://www.regular-expressions.info/posixbrackets.html>)
+
+Let's look at an example. The text below has three lines using three different forms of apostrophes. (For look up of unicode code for non-ascii characters see <http://unicodelookup.com/>)
+
+```
+This is case one: apostrophe's. This one is ascii code 39 (in decimal).
+This is case two: apostrophe"s. This one is ascii code 34 (in decimal).
+This is case three: apostrophe“s. This one is non-ascii Unicode 0x201D.
+```
+
+This test is saved in file test2.txt.
+
+The following command line in linux or OS X will print only the first two lines.
+
+```
+LC_CTYPE=C awk '! /[^[:alnum:][:space:][:punct:]]/' test2.txt
+```
+
+## Raw File Features
+
+Using linux/unix/OS X system commands like `wc`, `file`, `ls`, and `awk` we can get a quick feeling for the raw corpus files as shown in the table below. These commands work faster than built-in R equivalents.
+
+```{r echo=FALSE}
+library(stringr)
+library(formattable)
+
+prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
+download.dir <- "nlpData.dir"; sub.dir <- "final"; corpus.dir <- "en_US"
+corpus.dir <- file.path(prj.dir,download.dir,sub.dir,corpus.dir)
+setwd(corpus.dir)
+
+text.files <- dir(corpus.dir) #corpus.dir set in toCorpusDir.R
+
+# system specific commands
+arg <- c("-lh",text.files) ; size <- system2("ls",arg,stdout=TRUE)
+lwb <- system2("wc",text.files,stdout=TRUE)
+arg <- c("-m",text.files) ;  multi <- system2("wc",arg,stdout=TRUE)
+arg <- c(text.files) ;  enc <- system2("file",arg,stdout=TRUE)
+
+size <- sapply(str_split(size,boundary("word")),function(x) x[7])
+c.single <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[3])
+c.multi <- sapply(str_split(multi[1:3],boundary("word")),function(x) x[1])
+words <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[2])
+lines <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[1])
+encoding <- sapply(str_split(enc,":"),function(x) str_trim(x[2]))
+
+finfo <-data.frame("File"=text.files, "Size"=size, "Characters.Single"=c.single, "Characters.Multi"=c.multi, "Words"=words, "Lines"=lines, "Encoding"=encoding)
+
+# sample text
+sample.txt <- system2("head","-n 3 en_US.blogs.txt",stdout=TRUE)
+
+# maximum number of characters in a twitter file line and the corresponding line
+arg <- "'BEGIN {mx=0; mxtxt=\"\"}; {n=length($0); if(mx<n){mx=n; mxtxt=$0}}; END {print mx; print mxtxt}' en_US.twitter.txt"
+maxTwitTxt <- system2("awk",arg,stdout=TRUE)
+
+format_table(finfo)
+```
+***
+The blogs and news are similar in size, ca. 200 Mb. The twitter file is smaller at 159 Mb. The count for single byte characters is not the same as for multi-byte characters. This suggests that the encoding is not simple ASCII code. The command `file` leads to the output in the last column where the encoding is shown as UTF-8. Moreover, the presence of long lines suggests multiple sentences per line of input. Also, the line terminations are based on Windows carriage return and line feeds ("\\r\\n") as opposed to Unix termination of line feeds ("\\n").
+
+A quick view of the en_US.blogs.txt confirms these suspicions:
+
+```{r echo=FALSE}
+print(sample.txt)
+```
+
+First, the first line shows an example of non-ASCII character, the quote character. The following text illustrates the point:
+
+```
+This is case one: 'quote'. This one is ascii code 39 (in decimal).
+This is case two: "quote". This one is ascii code 34 (in decimal).
+This is case three: “quote“. This one is non-ascii Unicode 0x201D (hexadecimal).
+```
+
+Second, the carriage return ("\\r") is displayed as an additional character since I work under a OS X operating system. Finally, there are multiple sentences in input line 3.
+
+It is also interesting that the maximum number of characters in a twitter line is `r maxTwitTxt[1]`. Because this exceeds 140 the twitter file also includes multiple twits per line! The line with the maximum number of characters also shows non-ascii japanese characters!
+
+```{r echo=FALSE}
+print(maxTwitTxt[2])
+```
+
+I can use the unix/linux/OS X utility `iconv` to convert the files from UTF-8 to US-ASCII. The utility `dos2unix` can be used to convert the line termination from "\\r\\n" to just "\\n". I rename the files by replacing the prefix "en_US" with the prefix "unix". These new files have the following features:
+
+```{r echo=FALSE}
+prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
+download.dir <- "nlpData.dir"; sub.dir <- "final"; corpus.dir <- "en_US"
+corpus.dir <- file.path(prj.dir,download.dir,sub.dir,corpus.dir)
+setwd(corpus.dir)
+
+# converting files from UTF-8 to US-ASCII and from dos termination to unix
+c1 <- "-s --from-code UTF-8 --to-code US-ASCII -c"
+ascii.files <- c()
+for(f in text.files){
+  ts <- unlist(str_split(f,"[.]"))
+  new.f <- paste("ascii",ts[2],ts[3],sep=".")
+  ascii.files <- c(ascii.files, new.f)
+  arg <- paste(c1,f," > ",new.f)
+  if(!file.exists(new.f)) system2("iconv",arg)
+}
+
+unix.files <- c()
+for(f in ascii.files){
+  ts <- unlist(str_split(f,"[.]"))
+  new.f <- paste("unix",ts[2],ts[3],sep=".")
+  unix.files <- c(unix.files, new.f)
+  arg <- paste("-f -n ",f,new.f)
+  if(!file.exists(new.f)) system2("dos2unix",arg)
+}
+
+text.files <- unix.files
+
+# system specific commands
+arg <- c("-lh",text.files) ; size <- system2("ls",arg,stdout=TRUE)
+lwb <- system2("wc",text.files,stdout=TRUE)
+arg <- c("-m",text.files) ;  multi <- system2("wc",arg,stdout=TRUE)
+arg <- c(text.files) ;  enc <- system2("file",arg,stdout=TRUE)
+
+size <- sapply(str_split(size,boundary("word")),function(x) x[7])
+c.single <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[3])
+c.multi <- sapply(str_split(multi[1:3],boundary("word")),function(x) x[1])
+words <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[2])
+lines <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[1])
+encoding <- sapply(str_split(enc,":"),function(x) str_trim(x[2]))
+
+finfo <-data.frame("File"=text.files, "Size"=size, "Characters.Single"=c.single, "Characters.Multi"=c.multi, "Words"=words, "Lines"=lines, "Encoding"=encoding)
+
+# peeking at the file
+sample.txt <- system2("head","-n 3 unix.blogs.txt",stdout=TRUE)
+
+# maximum number of characters in a twitter file line and the corresponding line
+arg <- "'BEGIN {mx=0; mxtxt=\"\"}; {n=length($0); if(mx<n){mx=n; mxtxt=$0}}; END {print mx; print mxtxt}' unix.twitter.txt"
+maxTwitTxt <- system2("awk",arg,stdout=TRUE)
+
+format_table(finfo)
+```
+****
+
+Notice that now the number single byte characters and multi-byte characters is the same. The files coding is US-ASCII English. The file terminations are fixed, too.
+
+
+Looking at the text in the blogs file we have
+
+```{r echo=FALSE}
+print(sample.txt)
+```
+
+Finding the largest line in the twitter file we get:
+
+```{r echo=FALSE}
+print(maxTwitTxt[2])
+```
+
+This line has `r maxTwitTxt[1]` characters!
+
+***

@@ -1,0 +1,93 @@
+#   Filters non Ascii
+#   Removes special stuff:
+#       urls, emails, twitter hash tags, and user names
+#   Removes chat and twitter slang
+#   Collapse contractions like don't to dont
+#   Removes Punctuation
+#   Removes Numbers
+#   Goes to lower
+#   Remove Stop words
+#   Remove profanity
+#   Strips white spaces
+#   Does Stemming
+
+# # start processing.
+# # helper functions
+# toSpace <- content_transformer(function(x, pattern, ...){
+#   return (gsub(pattern," ", x, ...))})
+# toNone <- content_transformer(function(x, pattern, ...){
+#   return (gsub(pattern,"", x, ...))})
+# 
+# # regexs
+# # source: adapted from http://rpubs.com/sgeletta/95577
+# url.pat <- "(file|ftp|http)(s?)://.*\\b"
+# # source: adapted from http://www.regular-expressions.info/email.html
+# mail.pat <- "\\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}\\b"
+# # source: my own after web review of multiple options
+# twHash.pat <- "\\b#[a-zA-Z0-9]+\\b"
+# # my own after web review of multiple options
+# twUser.pat <- "\\b@([a-zA-Z0-9_]{1,15})\\b"
+# # contractions
+# cnt.pat <-"(?<=[a-zA-Z0-9])'(?=[a-zA-Z0-9])|(?<=[a-zA-Z0-9])\"(?=[a-zA-Z0-9])"
+# # bad characters.
+# bad.pat <- "[^[:graph:][:space:]]"
+# 
+# # Do specific fixes
+# # 1) Get rid of non ASCII characters by setting to space.
+# #   pattern [^[:alnum:][:punct:][:spaces]]
+# print("Cleaning: Special characters")
+# corpus[[k]] <- tm_map(corpus[[k]],toSpace,bad.pat)
+# 
+# # 2) Fix url like patterns
+# print("Cleaning: url like patterns.")
+# corpus[[k]] <- tm_map(corpus[[k]],toSpace, url.pat)
+# 
+# # 3) Fix email like patterns
+# print("Cleaning: email like patterns.")
+# corpus[[k]] <- tm_map(corpus[[k]],toSpace, mail.pat)
+# 
+# # 4) Fix twitter hash tags and user names
+# print("Cleaning: twitter hash tags and user names patterns.")
+# corpus[[k]] <- tm_map(corpus[[k]],toSpace, twHash.pat)
+# corpus[[k]] <- tm_map(corpus[[k]],toSpace, twUser.pat)
+# 
+# # 5) Fix twitter slang
+# #    load twitterSlang files.
+# #    Twitter Slang adapted from
+# #  http://www.socialmediatoday.com/social-networks/sarah-snow/2015-07-08/
+# #       get-out-your-twittonary-twitter-abbreviations-you-must-know
+# con <- file(file.path(prj.dir,"twitterSlang.txt"),open="r")
+# twitterSlang <- readLines(con)
+# close(con)
+# print("Cleaning: removing twitter slang words.")
+# corpus[[k]] <- tm_map(corpus[[k]],removeWords,twitterSlang)
+# rm(twitterSlang)
+# 
+# # 6) Collapse contractions
+# print("Cleaning: Collapsing contractions.")
+# corpus[[k]] <- tm_map(corpus[[k]],toNone, cnt.pat,perl=TRUE)
+# 
+# # 7) Do common fixes
+# print("Cleaning: removing punctuation.")
+# corpus[[k]] <- tm_map(corpus[[k]],removePunctuation)
+# print("Cleaning: removing numbers")
+# corpus[[k]] <- tm_map(corpus[[k]],removeNumbers)
+# print("Cleaning: converting to lower case.")
+# corpus[[k]] <- tm_map(corpus[[k]],content_transformer(tolower))
+# print("Cleaning: removing english stop words.")
+# corpus[[k]] <- tm_map(corpus[[k]],removeWords,stopwords("english"))
+# 
+# # 8) Remove profanity
+# # load profanity file. Source: www.banned.wordlist.com
+# con <- file(file.path(prj.dir,"profanity.txt"),open="r")
+# profanity <- readLines(con)
+# close(con)
+# print("Cleaning: removing profanity")
+# corpus[[k]] <- tm_map(corpus[[k]],removeWords,profanity)
+# rm(profanity)
+# 
+# # 9) Remove white spaces and stem the words
+# print("Cleaning: stripping white spaces.")
+# corpus[[k]] <- tm_map(corpus[[k]],stripWhitespace)
+# print("Cleaning: stemming text.")
+# corpus[[k]] <- tm_map(corpus[[k]],stemDocument)
