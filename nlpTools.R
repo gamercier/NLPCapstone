@@ -94,8 +94,8 @@ killProfane <- function(doc,profane.words){
   return(unlist(lapply(doc,killInPara,profane.words)))
 }
 
-# This clean corpus is different from the one under helpers.R
-clean.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
+# Cleans the corpus. Different from legacy one in helpers.R
+purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
                          removeStopWords=FALSE,stemWords=FALSE){
   #   Difference 1
   #   Assumes: text is US-ASCII and line terminations are fixed
@@ -142,7 +142,7 @@ clean.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   #                See result of checkRawData.R
   if(toASCII){
     print("Cleaning: Special characters")
-    corpus[[k]] <- tm_map(corpus[[k]],toSpace,BAD.PAT)
+    corpus <- tm_map(corpus,toSpace,BAD.PAT)
   }
   
   # 2) Set to lower case
@@ -173,7 +173,7 @@ clean.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   # 6) Collapse contractions - will not do for guess database
   if(collapseContractions){
     print("Cleaning: Collapsing contractions.")
-    corpus[[k]] <- tm_map(corpus[[k]],toNone, CNT.PAT,perl=TRUE)
+    corpus <- tm_map(corpus,toNone.tm, CNT.PAT,perl=TRUE)
   }
   
   # 7) Remove punctuation and numbers
@@ -184,7 +184,7 @@ clean.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   # 8) Remove stopwords - will not do for guess database
   if(removeStopWords){
     print("Cleaning: removing english stop words.")
-    corpus[[k]] <- tm_map(corpus[[k]],removeWords,stopwords("english"))
+    corpus <- tm_map(corpus,removeWords,stopwords("english"))
   }
   
   # 9) Remove white spaces
@@ -193,13 +193,13 @@ clean.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   
   # 10) Stemming - will not do for guess database
   if(stemWords){
-    corpus[[k]] <- tm_map(corpus[[k]],stemDocument)
+    corpus <- tm_map(corpus,stemDocument)
   }
   
   return(corpus)
 }
 
-helper.f2 <- c("toSpace","toNone","killProfane","clean.corpus")
+helper.f2 <- c("toSpace","toNone","killProfane","purify.corpus")
 print(paste("Created helper functions: ",paste(helper.f2)))
 
 # sampleText <- function(text.files,n.samples=1,percent=0.05){
