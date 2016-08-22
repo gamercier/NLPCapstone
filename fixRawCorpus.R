@@ -15,6 +15,42 @@ source("toCorpusDir.R")
 library(stringr)
 # source("helpers.R") # for read lines function
 
+f.info <- function(dir.name){
+  text.files <- dir(dir.name)
+  #print(paste(dir.name," Files: ",paste0(text.files,collapse=", ")))
+  # system specific commands
+  print("Using shell commands to get information on the bench files.")
+  
+  arg <- c("-lh",text.files) ; size <- system2("ls",arg,stdout=TRUE)
+  lwb <- system2("wc",text.files,stdout=TRUE);
+  lwb <- lwb[-length(lwb)] # gets rid of the total
+  arg <- c("-m",text.files) ;  multi <- system2("wc",arg,stdout=TRUE)
+  multi <- multi[-length(multi)] # gets rid of the total
+  arg <- c(text.files) ;  enc <- system2("file",arg,stdout=TRUE)
+  
+  # modified
+  size <- sapply(str_split(size,boundary("word")),function(x) x[7])
+  c.single <- sapply(str_split(lwb,boundary("word")),function(x) x[3])
+  c.multi <- sapply(str_split(multi,boundary("word")),function(x) x[1])
+  words <- sapply(str_split(lwb,boundary("word")),function(x) x[2])
+  lines <- sapply(str_split(lwb,boundary("word")),function(x) x[1])
+  encoding <- sapply(str_split(enc,":"),function(x) str_trim(x[2]))
+  
+  finfo <-data.frame("File"=text.files, "Size"=size, "Characters.Single"=c.single,
+                     "Characters.Multi"=c.multi, "Words"=words,
+                     "Lines"=lines, "Encoding"=encoding, stringsAsFactors = FALSE)
+  return(finfo)
+}
+
+pr.finfo <- function(finfo){
+  print(format(
+    paste(finfo$File,finfo$Size,finfo$Characters.Single,finfo$Words,finfo$Lines),
+    justify=c("right")))
+  print(format(
+    paste(finfo$File,finfo$Characters.Single,finfo$Characters.Multi),justify=c("right")))
+  print(paste(finfo$File,":",finfo$Encoding,sep=""))
+}
+
 #### Working with raw corpus
 ####
 text.files <- dir(corpus.dir) #corpus.dir set in toCorpusDir.R
@@ -28,6 +64,7 @@ lwb <- system2("wc",text.files,stdout=TRUE)
 arg <- c("-m",text.files) ;  multi <- system2("wc",arg,stdout=TRUE)
 arg <- c(text.files) ;  enc <- system2("file",arg,stdout=TRUE)
 
+# this may need to be fixed
 size <- sapply(str_split(size,boundary("word")),function(x) x[7])
 c.single <- sapply(str_split(lwb[1:3],boundary("word")),function(x) x[3])
 c.multi <- sapply(str_split(multi[1:3],boundary("word")),function(x) x[1])

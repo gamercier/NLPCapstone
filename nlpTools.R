@@ -24,6 +24,11 @@ dropLastWord <- function(ngram){
   n <- length(words[[1]]) # no checks! Assumes all ngrams have same n and n > 1
   toStr(lapply(words,function(s) s[1:(n-1)]))
 }
+getLastWord <- function(ngram){
+  words <- toWords(ngram)
+  n <- length(words[[1]])
+  toStr(lapply(words,function(s) s[-(1:(n-1))]))
+}
 dropFirstWord <- function(ngram) {
   words <- toWords(ngram)
   n <- length(words[[1]]) # no checks! Assumes all ngrams have same n
@@ -302,5 +307,27 @@ score.sbackoff <- function(freqs){
 
 helper.f3 <- c("sampleText","buildCorpus","buildDTM","dtm2freq","score.sbackoff")
 print(paste("Created helper functions: ",paste(helper.f3)))
+
+# for frequency of frequencies as data.frame, looping over ngrams
+freq2ff <- function(freq){
+  ff.table <- table(freq)
+  table2df <- function(t.in){
+    return(data.frame(freq=as.numeric(unlist(dimnames(t.in))),freq.of.freq=as.numeric(t.in)))
+  }
+  return(table2df(ff.table))
+}
+
+# selection function
+selectToKeep <- function(freq,cutoff=1){
+  return(names(freq[freq > cutoff]))
+}
+
+cut.score <- function(score,freq,cut.level=3){
+  to.keep <- selectToKeep(freq,cut.level)
+  return(sort(score[to.keep],decreasing=TRUE))
+}
+
+helper.f4 <- c("freq2ff","selectToKeep","cut.score")
+print(paste("Created helper functions: ",paste(helper.f4)))
 
 print("End of nlpTools.R")
