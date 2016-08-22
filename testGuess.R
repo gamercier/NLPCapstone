@@ -2,33 +2,25 @@
 # File: testGuess.R
 # Tests guessing function against a database of quadgrams in quad.r
 
-# Change directory to location of database
+# Change directory to location of project directory and load tools
 prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
-download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
-proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
-setwd(proc.corpus.dir)
-print(paste("Current directory: ",getwd()))
 
-# helper library and functions
-library(stringr)
+setwd(prj.dir)
+getwd()
+print("Loading tools!")
+source("nlpTools.R")
 
-toWords <- function(ngram) str_split(ngram,pattern=boundary("word"))
-toStr <- function(words) lapply(words,str_c,collapse=" ")
-dropFirstWord <- function(ngram) {
-  words <- toWords(ngram)
-  n <- length(words[[1]]) # no checks! Assumes all ngrams have same n
-  toStr(lapply(words,function(s) s[2:n]))
-}
-dropLastWord <- function(ngram){
-  words <- toWords(ngram)
-  n <- length(words[[1]]) # no checks! Assumes all ngrams have same n and n > 1
-  toStr(lapply(words,function(s) s[1:(n-1)]))
-}
-
-getLastWord <- function(ngram){
-  words <- toWords(ngram)
-  n <- length(words[[1]])
-  toStr(lapply(words,function(s) s[-(1:(n-1))]))
+print("Data for testing!")
+# Load data for testing
+if(file.exists(file.path(prj.dir,"test_quads.r"))){
+  load(file.path(prj.dir,"test_quads.r"))
+  print("Loaded quadgrams for testing.")
+} else {
+  load(file.path(prj.dir,"quads.r"))
+  n.sample <- 1000
+  test.sample <- quads[sample.int(length(quads),n.sample)]
+  save(test.sample,file=file.path(prj.dir,"test_quads.r"))
+  print("Built and saved new set of quadgrams for testing")
 }
 
 # MAIN FUNCTION
@@ -67,22 +59,22 @@ testing <- function(test.s){
   return(test.f)
 }
 
-# Load data for testing
-if(file.exists(file.path(prj.dir,"test_quads.r"))){
-  load(file.path(prj.dir,"test_quads.r"))
-  print("Loaded quadgrams for testing.")
-} else {
-  load(file.path(prj.dir,"quads.r"))
-  n.sample <- 1000
-  test.sample <- quads[sample.int(length(quads),n.sample)]
-  save(test.sample,file=file.path(prj.dir,"test_quads.r"))
-  print("Built and saved new set of quadgrams for testing")
-}
+# Change directory to corpus directory
+download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
+proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
+setwd(proc.corpus.dir)
+getwd()
 
 ################ try_01 database testing ####################
-# Using minimal database
+# Change directory to version of database we want
+try.dir <- file.path(proc.corpus.dir,"try_01")  # doing second try
+setwd(try.dir)
+print("try_01")
+getwd()
+
+#######  Using minimal database
 print("Loading minimal score database ...")
-load(file.path("try_01","dbMinScores.r"))
+load("dbMinScores.r")
 print("Finished loading short scores database!")
 
 # The strategy 1 and 2 edited, minimal databases:
@@ -95,9 +87,9 @@ basesDB <- m.basesDB
 results.minDB <- testing(test.sample)
 print(paste("Hits: ",sum(results.minDB)," out of ",length(results.minDB)))
 
-# Using short database
+######  Using short database
 print("Loading short score database ...")
-load(file.path("try_01","dbShortScores.r"))
+load("dbShortScores.r")
 print("Finished loading short scores database!")
 
 # The strategy 1 edited, short databases:
@@ -110,7 +102,7 @@ basesDB <- s.basesDB
 results.shortDB <- testing(test.sample)
 print(paste("Hits: ",sum(results.shortDB)," out of ",length(results.shortDB)))
 
-# Using full database
+########## Using full database
 print("Loading full score database ...")
 load(file.path("try_01","dbScores.r"))
 print("Finished loading full scores database!")
@@ -133,9 +125,15 @@ print(paste("Hits: ",sum(results.fullDB)," out of ",length(results.fullDB)))
 #
 
 ################ try_02 database testing ####################
+# Change directory to version of database we want
+try.dir <- file.path(proc.corpus.dir,"try_02")  # doing second try
+setwd(try.dir)
+print("try_02")
+getwd()
+
 ######  Using minimal database
 print("Loading minimal score database ...")
-load(file.path("try_02","dbMinScores.r"))
+load("dbMinScores.r")
 print("Finished loading short scores database!")
 
 # The strategy 1 and 2 edited, minimal databases:
@@ -150,7 +148,7 @@ print(paste("Hits: ",sum(results.minDB)," out of ",length(results.minDB)))
 
 #######  Using short database; cut off of 1
 print("Loading short score database ...")
-load(file.path("try_02","dbShortScores.r"))
+load("dbShortScores.r")
 print("Finished loading short scores database!")
 
 # The strategy 1 edited, short databases:
@@ -178,25 +176,34 @@ basesDB <- bases.db[[1]]
 results.fullDB <- testing(test.sample)
 print(paste("Hits: ",sum(results.fullDB)," out of ",length(results.fullDB)))
 
-######## Using S3 database, short db with cut off value of 3
-# Using short databae with cut off of 3
-print("Loading short (cut off 3) score database ...")
-load(file.path("try_02","dbS3Scores.r"))
-print("Finished loading short scores database with cut off 3, dbS3Scores.r!")
+######## Testing with different cut offs
+# Here we load dbShortDBS.r
+print("Loading dbShortDBS.r database ...")
+load("dbShortDBS.r") # loads variable short.dbs
+# This is a list.
+# One entry per cut off value.
+#    Each entry is a list(scores,ngrams,bases)
+#
+print("Finished loading dbShortdBS databases, dbShortDBS.r!")
 
-# The unedited full databases:
-#     s3.scores.db, s3.ngrams.db ,and s3.bases.db
-scoresDB <- s3.scores.db; TOPUNI.SCORES <- s3.scores.db$unigram[1:3]
-ngramsDB <- s3.ngrams.db
-basesDB <- s3.bases.db
-
-results.s3DB <- testing(test.sample)
-print(paste("Hits: ",sum(results.s3DB)," out of ",length(results.s3DB)))
+cuts <- names(short.dbs)
+for(k in cuts){
+  scoresDB <- short.dbs[[k]]$scores; TOPUNI.SCORES <- scoresDB$unigram[1:3]
+  ngramsDB <- short.dbs[[k]]$ngrams
+  basesDB <- short.dbs[[k]]$bases
+  
+  results <- testing(test.sample)
+  print(paste("Testing with cut off: ",k))
+  print(paste("Hits: ",sum(results)," out of ",length(results)))
+}
 
 # With try_02 database and test_quads.r we get the following results:
-# Minimal database:      62/1000 short database but keep top 3 scores.
-# Short database cut 3: 102/1000
-# Short database cut 1: 85/1000 cuts off frequency of 1 in bigram and above
-# Full database:        47/1000 no cuts
+# Minimal database:       62/1000 short database but keep top 3 scores.
+# Short database cut 20:  93/1000
+# Short database cut 10:  98/1000
+# Short database cut  7: 104/1000
+# Short database cut  3: 102/1000
+# Short database cut  1: 85/1000 cuts off frequency of 1 in bigram and above
+# Full database:         47/1000 no cuts
 
-# So 2 different samples of 5% with slightly different cleaning yield similar results.
+# So using a cut off 7 is pretty good with a 5% sampling of the database.

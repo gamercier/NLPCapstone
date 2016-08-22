@@ -31,46 +31,42 @@ print(paste("Current directory: ",getwd()))
 #    freq.db, scores.db, ngrams.db, and bases.db are lists with each
 #    element containing the information generated from a given sample of the corpus
 #
-# STRATEGY -1 - keep all ngrams witn n > that have freq > 1
+# STRATEGY -1 - keep all ngrams that have n > cut value
+#               cut = c(1,3,7,10,20)
 load("dbfreq.r")
+freqDB <- freq.db[[1]] # take the first sample
+
 load("dbScores.r")
-
-# pick a sample
-freqDB <- freq.db[[1]] # sorted already
-
-scoresDB <- scores.db[[1]] # picking the first sample
+scoresDB <- scores.db[[1]] # take the first sample from full score
 basesDB <- bases.db[[1]]
 ngramsDB <- ngrams.db[[1]]
 
-s.scoresDB <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-s.ngramsDB <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-s.basesDB  <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
-
-s.scoresDB[2:4] <- mapply(cut.score,scoresDB[2:4],freqDB[2:4],
-                           MoreArgs = list(cut.level=1))
-s.scoresDB$unigram <- sort(scoresDB$unigram,decreasing=TRUE) # scoresDB should be sorted
-s.ngramsDB <- lapply(s.scoresDB,names)
-s.basesDB <- lapply(s.ngramsDB[2:4],function(x) unlist(dropLastWord(x)))
-
-# toKeep <- lapply(freqDB,selectToKeep) # freqDB is one sample
-# 
-# s.scoresDB <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-# s.ngramsDB <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-# s.basesDB <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
-# 
-# # notice the need to re-sort the data
-# for(i in seq(2,4)){
-#   s.scoresDB[[i]] <- sort(scoresDB[[i]][toKeep[[i]]],decreasing=TRUE)
-#   s.ngramsDB[[i]] <- names(s.scoresDB[[i]])
-#   s.basesDB[[(i-1)]] <- unlist(dropLastWord(s.ngramsDB[[i]]))
-# }
-# s.scoresDB[[1]] <- sort(scoresDB[[1]],decreasing=TRUE) # scoresDB should be sorted
-# s.ngramsDB[[1]] <- names(s.scoresDB[[1]])
-
-if(file.exists("dbShortScores.r")){
-  file.remove(("dbShortScores.r"))
+buildShortDB <- function(scores,ngrams,bases,freq,cut.levels=c(1)){
+  short.dbs <- list()
+  for(i in cut.levels){
+    
+    c.scores <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
+    c.ngrams <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
+    c.bases  <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
+    
+    c.scores[2:4] <- mapply(cut.score,scores[2:4],freq[2:4],
+                            MoreArgs = list(cut.level=i))
+    c.scores$unigram <- sort(scoresDB$unigram,decreasing=TRUE) # scoresDB should be sorted
+    c.ngrams <- lapply(c.scores,names)
+    c.bases <- lapply(c.ngrams[2:4],function(x) unlist(dropLastWord(x)))
+    db <- list(scores=c.scores,ngrams=c.ngrams,bases=c.bases)
+    short.dbs[[as.character(i)]] <- db
+  }
+  return(short.dbs)
 }
-save(s.scoresDB,s.ngramsDB,s.basesDB,file="dbShortScores.r")
+
+short.dbs <- buildShortDB(scoresDB,ngramsDB,basesDB,freqDB,c(1,3,7,10,20))
+
+if(file.exists("dbShortDBS.r")){
+  file.remove(("dbShortDBS.r"))
+}
+save(short.dbs,file="dbShortDBS.r")
+
 ### END STRATEGY 1 #####
 
 # STRATEGY -2:
@@ -134,49 +130,7 @@ save(m.scoresDB,m.ngramsDB,m.basesDB,file="dbMinScores.r")
 # 90% of the corpus!
 # END STRATEGY 3
 
-# Strategy 4 - Use cut off 3
-load("dbfreq.r")
-freqDB <- freq.db[[1]] # take the first sample
-
-load("dbScores.r")
-scoresDB <- scores.db[[1]] # take the first sample from full score
-basesDB <- bases.db[[1]]
-ngramsDB <- ngrams.db[[1]]
-
-s3.scores.db <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-s3.ngrams.db <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-s3.bases.db  <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
-
-s3.scores.db[2:4] <- mapply(cut.score,scoresDB[2:4],freqDB[2:4],
-                          MoreArgs = list(cut.level=3))
-s3.scores.db$unigram <- sort(scoresDB$unigram,decreasing=TRUE) # scoresDB should be sorted
-s3.ngrams.db <- lapply(s3.scores.db,names)
-s3.bases.db <- lapply(s3.ngrams.db[2:4],function(x) unlist(dropLastWord(x)))
-
-save(s3.scores.db,s3.ngrams.db,s3.bases.db,file="dbS3Scores.r")
-
-# Strategy #5 - Cut off 7
-load("dbfreq.r")
-freqDB <- freq.db[[1]] # take the first sample
-
-load("dbScores.r")
-scoresDB <- scores.db[[1]] # take the first sample from full score
-basesDB <- bases.db[[1]]
-ngramsDB <- ngrams.db[[1]]
-
-s7.scores.db <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-s7.ngrams.db <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-s7.bases.db  <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
-
-s7.scores.db[2:4] <- mapply(cut.score,scoresDB[2:4],freqDB[2:4],
-                            MoreArgs = list(cut.level=7))
-s7.scores.db$unigram <- sort(scoresDB$unigram,decreasing=TRUE) # scoresDB should be sorted
-s7.ngrams.db <- lapply(s7.scores.db,names)
-s7.bases.db <- lapply(s7.ngrams.db[2:4],function(x) unlist(dropLastWord(x)))
-
-save(s7.scores.db,s7.ngrams.db,s7.bases.db,file="dbS7Scores.r")
-
-
+# Strategy 4 - Do pruning in DTM instead
 # Explore the frequency of frequencies:
 load("dbfreq.r")
 freqDB <- freq.db[[1]] # take the first sample
@@ -194,5 +148,4 @@ dtmDB <- dtms[[1]] # take the first sample
 
 #sparsity
 # unigram 50%, bigram 60%, trigram 64%, quadgram 66%
-
 
