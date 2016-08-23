@@ -207,3 +207,18 @@ for(k in cuts){
 # Full database:         47/1000 no cuts
 
 # So using a cut off 7 is pretty good with a 5% sampling of the database.
+
+##### Testing with sparse database Sp33
+# Here we load dbSp33Scores.r
+print("Loading dbSp33Scores.r database ...")
+load("dbSp33Scores.r") # loads variable short.dbs
+print("Finished loading dbSp33Scores databases!")
+
+scoresDB <- scores.db.sp33[[1]] ; TOPUNI.SCORES <- scoresDB$unigram[1:3]
+ngramsDB <- ngrams.db.sp33[[1]]
+basesDB <- bases.db.sp33[[1]]
+
+results <- testing(test.sample)
+print(paste("Hits: ",sum(results)," out of ",length(results)))
+
+# With Sparsity of 33% got 104/1000

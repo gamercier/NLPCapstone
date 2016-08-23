@@ -130,18 +130,8 @@ save(m.scoresDB,m.ngramsDB,m.basesDB,file="dbMinScores.r")
 # 90% of the corpus!
 # END STRATEGY 3
 
-# Strategy 4 - Do pruning in DTM instead
-# Explore the frequency of frequencies:
-load("dbfreq.r")
-freqDB <- freq.db[[1]] # take the first sample
-
-load("dbScores.r")
-scoresDB <- scores.db[[1]] # take the first sample from full score
-basesDB <- bases.db[[1]]
-ngramsDB <- ngrams.db[[1]]
-
-ffDB<- lapply(freqDB,freq2ff)
-lapply(ffDB,head,n=5)
+#### Strategy 4 - Do pruning in DTM instead
+####
 load("dbdtms.r")
 library(tm)
 dtmDB <- dtms[[1]] # take the first sample
@@ -149,3 +139,25 @@ dtmDB <- dtms[[1]] # take the first sample
 #sparsity
 # unigram 50%, bigram 60%, trigram 64%, quadgram 66%
 
+dtmDB.sp33 <- list()
+dtmDB.sp33$unigram <- dtmDB$unigram
+dtmDB.sp33[2:4] <- lapply(dtmDB[2:4],removeSparseTerms,0.33)
+names(dtmDB.sp33) <- c("unigram","bigram","trigram","quadgram")
+
+freqDB <- dtm2freq(dtmDB.sp33)
+scoresDB <- score.sbackoff(freqDB)
+ngramsDB <- lapply(scoresDB,names)
+basesDB <- lapply(ngramsDB[2:4],function(x) unlist(dropLastWord(x)))
+
+freq.db.sp33 <- list(freqDB)
+scores.db.sp33 <- list(scoresDB)
+ngrams.db.sp33 <- list(ngramsDB)
+bases.db.sp33 <- list(basesDB)
+
+save(freq.db.sp33,file="dbfreq_Sp33.r")
+save(scores.db.sp33,ngrams.db.sp33,bases.db.sp33,file="dbSp33Scores.r")
+
+############### Looking at the frequencies ####
+load("dbfreq.r")
+ffDB<- lapply(freq.db[[1]],freq2ff)
+lapply(ffDB,head,n=5)
