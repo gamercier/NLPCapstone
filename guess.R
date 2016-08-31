@@ -84,17 +84,18 @@ proc.time() - time
 
 rm(s.scoresDB,s.ngramsDB,s.basesDB)
 
-# Using minimal database
-print("Loading minimal score database ...")
-load("dbMinScores.r")
-print("Finished loading short scores database!")
 
-# The strategy 1 and 2 edited, minimal databases:
-#     m.scores.db, m.ngrams.db ,and m.bases.db
-#     only apply to a single sample of the corpus.
-scoresDB <- m.scoresDB; TOPUNI.SCORES <- m.scoresDB$unigram[1:3]
-ngramsDB <- m.ngramsDB
-basesDB <- m.basesDB
+# Using dense document text matrix for all dbSp33Scores_All.r
+setwd("try_04")
+dir()
+print("Loading dense score database ...")
+load("dbSp33Scores_All.r")
+print("Finished loading dense scores database!")
+
+# Strategy here is to make sparsity 0% (actually set to threshold of 33% but yields 0%)
+scoresDB <- scores.db.sp33[[1]]; TOPUNI.SCORES <- scoresDB$unigram[1:3]
+ngramsDB <- ngrams.db.sp33[[1]]
+basesDB <- bases.db.sp33[[1]]
 
 # Test using shorter database
 print("Testing with minimal database.")

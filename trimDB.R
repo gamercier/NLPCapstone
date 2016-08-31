@@ -2,11 +2,12 @@
 # file trimDB.R
 # Takes the scores database (with associated ngrams and bases) and trims it
 # Strategy 1: Drops cases where ngram frequency is 1 (except for unigrams)
-#     This generate the short list
+#     This generate the short list. I tried cut.levels 1 through 10
 # Strategy 2: Keeps the 3 top scoring ngrams that have the same
 #             (n-1)gram at a begining
 #     This generates the minimal list
 # Strategy 3: keep unigrams that cover 90% of the corpus. NOT GOOD COMMENTED OUT
+# Strategy 4: Trim the sparsity of the DTM
 
 # Change directory to location of project directory and load tools
 prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
@@ -14,6 +15,26 @@ prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
 setwd(prj.dir)
 source("nlpTools.R")
 
+buildShortDB <- function(scores,ngrams,bases,freq,cut.levels=c(1)){
+  short.dbs <- list()
+  for(i in cut.levels){
+    
+    c.scores <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
+    c.ngrams <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
+    c.bases  <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
+    
+    c.scores[2:4] <- mapply(cut.score,scores[2:4],freq[2:4],
+                            MoreArgs = list(cut.level=i))
+    c.scores$unigram <- sort(scoresDB$unigram,decreasing=TRUE) # scoresDB should be sorted
+    c.ngrams <- lapply(c.scores,names)
+    c.bases <- lapply(c.ngrams[2:4],function(x) unlist(dropLastWord(x)))
+    db <- list(scores=c.scores,ngrams=c.ngrams,bases=c.bases)
+    short.dbs[[as.character(i)]] <- db
+  }
+  return(short.dbs)
+}
+
+########## Working with try_02 directory 5% corpus  - second sample
 # Change directory to corpus directory
 download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
 proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
@@ -40,25 +61,6 @@ load("dbScores.r")
 scoresDB <- scores.db[[1]] # take the first sample from full score
 basesDB <- bases.db[[1]]
 ngramsDB <- ngrams.db[[1]]
-
-buildShortDB <- function(scores,ngrams,bases,freq,cut.levels=c(1)){
-  short.dbs <- list()
-  for(i in cut.levels){
-    
-    c.scores <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-    c.ngrams <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-    c.bases  <- list(bigram=NULL,trigram=NULL,quadgram=NULL)
-    
-    c.scores[2:4] <- mapply(cut.score,scores[2:4],freq[2:4],
-                            MoreArgs = list(cut.level=i))
-    c.scores$unigram <- sort(scoresDB$unigram,decreasing=TRUE) # scoresDB should be sorted
-    c.ngrams <- lapply(c.scores,names)
-    c.bases <- lapply(c.ngrams[2:4],function(x) unlist(dropLastWord(x)))
-    db <- list(scores=c.scores,ngrams=c.ngrams,bases=c.bases)
-    short.dbs[[as.character(i)]] <- db
-  }
-  return(short.dbs)
-}
 
 short.dbs <- buildShortDB(scoresDB,ngramsDB,basesDB,freqDB,c(1,3,7,10,20))
 
@@ -156,8 +158,143 @@ bases.db.sp33 <- list(basesDB)
 
 save(freq.db.sp33,file="dbfreq_Sp33.r")
 save(scores.db.sp33,ngrams.db.sp33,bases.db.sp33,file="dbSp33Scores.r")
+############ End working with try_02 directory
 
-############### Looking at the frequencies ####
+##### Working with larger DTM - 10% of corpus
+# Change directory to version of database we want
+try.dir <- file.path(proc.corpus.dir,"try_03")  # doing second try
+setwd(try.dir)
+
+print(paste("Current directory: ",getwd()))
+
+# Prunning database
+# Start with the un-edited database.
+#    freq.db, scores.db, ngrams.db, and bases.db are lists with each
+#    element containing the information generated from a given sample of the corpus
+#
+# STRATEGY -1 - keep all ngrams that have n > cut value
+#               cut = c(1,3,7,10,20)
 load("dbfreq.r")
-ffDB<- lapply(freq.db[[1]],freq2ff)
-lapply(ffDB,head,n=5)
+freqDB <- freq.db[[1]] # take the first sample
+
+load("dbScores.r")
+scoresDB <- scores.db[[1]] # take the first sample from full score
+basesDB <- bases.db[[1]]
+ngramsDB <- ngrams.db[[1]]
+
+short.dbs <- buildShortDB(scoresDB,ngramsDB,basesDB,freqDB,c(1,3,7,10,20))
+
+if(file.exists("dbShortDBS.r")){
+  file.remove(("dbShortDBS.r"))
+}
+save(short.dbs,file="dbShortDBS.r")
+
+#### Strategy 4 - Do pruning in DTM instead
+####
+load("dbdtms.r")
+library(tm)
+dtmDB <- dtms[[1]] # take the first sample
+
+#sparsity
+# unigram 52%, bigram 60%, trigram 64%, quadgram 66% - similar to 5% case
+
+dtmDB.sp33 <- list()
+dtmDB.sp33$unigram <- dtmDB$unigram
+dtmDB.sp33[2:4] <- lapply(dtmDB[2:4],removeSparseTerms,0.33)
+names(dtmDB.sp33) <- c("unigram","bigram","trigram","quadgram")
+
+freqDB <- dtm2freq(dtmDB.sp33)
+scoresDB <- score.sbackoff(freqDB)
+ngramsDB <- lapply(scoresDB,names)
+basesDB <- lapply(ngramsDB[2:4],function(x) unlist(dropLastWord(x)))
+
+freq.db.sp33 <- list(freqDB)
+scores.db.sp33 <- list(scoresDB)
+ngrams.db.sp33 <- list(ngramsDB)
+bases.db.sp33 <- list(basesDB)
+
+save(freq.db.sp33,file="dbfreq_Sp33.r")
+save(scores.db.sp33,ngrams.db.sp33,bases.db.sp33,file="dbSp33Scores.r")
+
+# Let's repeat but with unigram sparsity also 33%
+
+dtmDB.sp33 <- list()
+dtmDB.sp33$unigram <- removeSparseTerms(dtmDB$unigram,0.33)
+dtmDB.sp33[2:4] <- lapply(dtmDB[2:4],removeSparseTerms,0.33)
+names(dtmDB.sp33) <- c("unigram","bigram","trigram","quadgram")
+
+freqDB <- dtm2freq(dtmDB.sp33)
+scoresDB <- score.sbackoff(freqDB)
+ngramsDB <- lapply(scoresDB,names)
+basesDB <- lapply(ngramsDB[2:4],function(x) unlist(dropLastWord(x)))
+
+freq.db.sp33 <- list(freqDB)
+scores.db.sp33 <- list(scoresDB)
+ngrams.db.sp33 <- list(ngramsDB)
+bases.db.sp33 <- list(basesDB)
+
+save(freq.db.sp33,file="dbfreq_Sp33_All.r")
+save(scores.db.sp33,ngrams.db.sp33,bases.db.sp33,file="dbSp33Scores_All.r")
+
+########## Working with try_04 directory 5% corpus  - 
+#
+# Change directory to corpus directory
+download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
+proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
+
+setwd(proc.corpus.dir)
+
+# Change directory to version of database we want
+try.dir <- file.path(proc.corpus.dir,"try_04")  # doing second try
+setwd(try.dir)
+
+print(paste("Current directory: ",getwd()))
+
+# Prunning database
+# Start with the un-edited database.
+#    freq.db, scores.db, ngrams.db, and bases.db are lists with each
+#    element containing the information generated from a given sample of the corpus
+#
+# STRATEGY -1 - keep all ngrams that have n > cut value
+#               cut = c(1,3,7,10,20)
+load("dbfreq.r")
+freqDB <- freq.db[[1]] # take the first sample
+
+load("dbScores.r")
+scoresDB <- scores.db[[1]] # take the first sample from full score
+basesDB <- bases.db[[1]]
+ngramsDB <- ngrams.db[[1]]
+
+short.dbs <- buildShortDB(scoresDB,ngramsDB,basesDB,freqDB,c(1,3,7,10,20))
+
+if(file.exists("dbShortDBS.r")){
+  file.remove(("dbShortDBS.r"))
+}
+save(short.dbs,file="dbShortDBS.r")
+
+#### Strategy 4 - Do pruning in DTM instead - here pruning all!
+####
+load("dbdtms.r")
+library(tm)
+dtmDB <- dtms[[1]] # take the first sample
+
+#sparsity
+# unigram 50%, bigram 60%, trigram 64%, quadgram 66%
+
+dtmDB.sp33 <- lapply(dtmDB,removeSparseTerms,0.33)
+names(dtmDB.sp33) <- c("unigram","bigram","trigram","quadgram")
+
+freqDB <- dtm2freq(dtmDB.sp33)
+scoresDB <- score.sbackoff(freqDB)
+ngramsDB <- lapply(scoresDB,names)
+basesDB <- lapply(ngramsDB[2:4],function(x) unlist(dropLastWord(x)))
+
+freq.db.sp33 <- list(freqDB)
+scores.db.sp33 <- list(scoresDB)
+ngrams.db.sp33 <- list(ngramsDB)
+bases.db.sp33 <- list(basesDB)
+
+save(freq.db.sp33,file="dbfreq_Sp33_All.r")
+save(scores.db.sp33,ngrams.db.sp33,bases.db.sp33,file="dbSp33Scores_All.r")
+
+############ End working with try_04 directory

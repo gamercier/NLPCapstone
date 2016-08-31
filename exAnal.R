@@ -206,6 +206,12 @@ save(very.clean.corpus,dtm.unigram,tdm.unigram,
      dtm.bigram,tdm.bigram,dtm.trigram,tdm.trigram,dtm.quadgram,tdm.quadgram,
      file="exAnal.r")
 
+####
+############### Looking at the frequencies ####
+# load("dbfreq.r")
+# ffDB<- lapply(freq.db[[1]],freq2ff)
+# lapply(ffDB,head,n=5)
+
 print("Returning to main directory!")
 setwd(prj.dir)
 print(paste("Current directory: ",getwd()))

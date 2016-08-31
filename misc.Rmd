@@ -1,46 +1,13 @@
 ---
-title: "Notes"
+title: "misc"
 author: "Gustavo Mercier"
-date: "July 21, 2016"
-output:    
-  html_document:
-    keep_md: True
+date: "August 25, 2016"
+output: html_document
 ---
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache=TRUE, echo=TRUE, fig.width=6, fig.height=8, fig.align="center")
-```
-
-## Notes on Natural Language Processing
-
-# Notation
-
-A string is a discrete and finite ordered set of tokens: $W_k^L = \{w_1, w_2, ..., w_{L-1}, w_L\}$. Tokens are units of the language that cannot be subset, i.e. they are atomic. In our context words are the tokens of the language. The unordered set of all tokens is the dictionary of the language.
-
-The reference to _tokens_ instead of _words_ is to account for special circumstances such as the begining and ending of sentences. The sentence, _This is a sentence._, has the string representation $\{This,is,a,sentence.\}$. Notice that in this other example, _the example, "This is a sentence.", is not the same_, is different. In this case it is $\{"This, is, a, sentence."\}$. However, in a dictionary entries like _This_ and _sentence._ are no different from _this_ and _sentence_.
-
-Applying a statistical analysis to linguistics we consider a string, $W_k^L$, a random variable. Using conditional probabilities we can compute the probability of finding a given string:
-
-$$
-P(W_k^L) = \prod_{i=1}^L P(w_i|W_k^{i-1})
-$$
-
-Behind this computation is the model of a Markov chain. A Markov chain consists of a sequence of instances (or states): $s_1 \rightarrow s_2 \rightarrow s_3 \rightarrow ... s_n$. It is common to label the sequence of states by the last entry, but to make it clear the state at the completion of the sequence $s_1, ..., s_n$ will be labeled state $S_n$.
-
-The probability of reaching state $S_j$ depends in the sequence of all previous states. So the probability for the transition $S_i \rightarrow S_k$ is $P(S_k|S_i,S_{i-1},...,S_1)$ However, a common approximation is to disregard some of the older (earliest) states. The idea is that the process lacks long term memory, and does not _recall_ all the steps to get to where it is. The extreme is to disregard all previous states, except the most recent one, $P(S_k|S_i,S_{i-1},...,S_1) \approx P(S_k|S_i)$. 
-
-The same idea can be applied to the probability of the strings. In this case each state consists of the partially constructed substrings. The sequence of states $S_1,...,S_i$ implies a final state with the string $w_1,...,w_i$. However, the sequence of states $S_n, ...., S_i$ implies a string $w_n,...,w_i$ where tokens $w_1,...w_{n-1}$ are disregarded in computing the conditional probabilities. This means we keep $i-(n-1)$ tokens. 
-
-To include this in our notation for strings, $W_k^L$, we simply replace $k = i-(n-1) = i - n + 1$. This leaves us with the Markov approximation:
-
-$$
-P(W_k^L) = \prod_{i=1}^L P(w_i|W_k^{i-1}) \approx \prod_{i=1}^L \hat{P}(w_i|W_{i-n+1}^{i-1})
-$$
-
-
-## Notes on text encoding
-
 The default character encoding in my computer is en_US.UTF-8. This encoding includes the traditional ASCII characters as a subset. For details of the ASCII character set see
 <http://www.ascii-code.com/>. For details of UTF-8 see <https://www.wikiwand.com/en/UTF-8>
+
+
 
 The ASCII character set is single byte encoding. The unix/linux utility `{wc}` can count characters with single byte encoding as is the case with ASCII text using `wc -c`, but the count can be extended to include multi-byte characters using a different option, `wc -m`. If only single character encoding is present, then the output of both options should be the same. This can be used to test for multi-byte characters not present in the ASCII code.
 

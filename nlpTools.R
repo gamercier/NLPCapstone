@@ -21,18 +21,15 @@ toStr <- function(words) lapply(words,str_c,collapse=" ")
 
 dropLastWord <- function(ngram){
   words <- toWords(ngram)
-  n <- length(words[[1]]) # no checks! Assumes all ngrams have same n and n > 1
-  toStr(lapply(words,function(s) s[1:(n-1)]))
+  toStr(lapply(words,function(s) { n<-length(s); s[1:(n-1)] }))
 }
 getLastWord <- function(ngram){
   words <- toWords(ngram)
-  n <- length(words[[1]])
-  toStr(lapply(words,function(s) s[-(1:(n-1))]))
+  toStr(lapply(words,function(s) { n<-length(s); s[-(1:(n-1))] }))
 }
 dropFirstWord <- function(ngram) {
   words <- toWords(ngram)
-  n <- length(words[[1]]) # no checks! Assumes all ngrams have same n
-  toStr(lapply(words,function(s) s[2:n]))
+  toStr(lapply(words,function(s) { n<-length(s); s[2:n] }))
 }
 
 # read text file - Needs this early
@@ -274,8 +271,31 @@ buildDTM <- function(corpus,max.ngram=4){
   return(
     lapply(tokenizers,
        function(tk) {
-         DocumentTermMatrix(corpus,control=list(tokenize = tk))
+         DocumentTermMatrix(corpus,control=list(tokenize = tk,
+                                                wordLengths=c(1,Inf)))
        }
+    )
+  )
+}
+
+buildTDM <- function(corpus,max.ngram=4){
+  tokenizers = list()
+  makeTokenizer <- function(n) {
+    n;
+    function(x){
+      unlist(lapply(ngrams(words(x), n), paste,
+                    collapse = " "),use.names = FALSE)
+    }
+  }
+  for(i in seq(max.ngram)){
+    tokenizers[[i]] <- makeTokenizer(i)
+  }
+  return(
+    lapply(tokenizers,
+           function(tk) {
+             TermDocumentMatrix(corpus,control=list(tokenize = tk,
+                                                    wordLengths=c(1,Inf)))
+           }
     )
   )
 }
@@ -305,7 +325,8 @@ score.sbackoff <- function(freqs){
   return(scores)
 }
 
-helper.f3 <- c("sampleText","buildCorpus","buildDTM","dtm2freq","score.sbackoff")
+helper.f3 <- c("sampleText","buildCorpus","buildDTM","buildTDM",
+               "dtm2freq","score.sbackoff")
 print(paste("Created helper functions: ",paste(helper.f3)))
 
 # for frequency of frequencies as data.frame, looping over ngrams
