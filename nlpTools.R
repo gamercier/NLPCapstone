@@ -63,11 +63,16 @@ TWHASH.PAT <- "\\b#[a-zA-Z0-9]+\\b"
 TWUSER.PAT <- "\\b@([a-zA-Z0-9_]{1,15})\\b"
 # contractions
 CNT.PAT <-"(?<=[a-zA-Z0-9])'(?=[a-zA-Z0-9])|(?<=[a-zA-Z0-9])\"(?=[a-zA-Z0-9])"
+# hyphens (-), en-dash(--), em-dash(---)
+HYPHEN.PAT <- "(?<=[a-zA-Z0-9])-(?=[a-zA-Z0-9])"
+ENDASH.PAT <- "(?<=[a-zA-Z0-9])--(?=[a-zA-Z0-9])" # true endash is outside ASCII code
+EMDASH.PAT <- "(?<=[a-zA-Z0-9])---(?=[a-zA-Z0-9])" # true emdash is outside ASCII code
 # bad characters.
 BAD.PAT <- "[^[:alnum:][:punct:][:space:]]"
 
 regex.p <- c("TWITTERSLANG","PROFANITY","URL.PAT",
-             "MAIL.PAT","TWHASH.PAT","TWUSER.PAT","CNT.PAT","BAD.PAT")
+             "MAIL.PAT","TWHASH.PAT","TWUSER.PAT","CNT.PAT","HYPHEN.PAT","ENDASH.PAT",
+             "EMDASH.PAT","BAD.PAT")
 print(paste("Created regex patterns: ",paste(regex.p)))
 
 # global substitutions
@@ -98,7 +103,7 @@ killProfane <- function(doc,profane.words){
 
 # Cleans the corpus. Different from legacy one in helpers.R
 purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
-                         removeStopWords=FALSE,stemWords=FALSE){
+                          collapseHyphens=FALSE,removeStopWords=FALSE,stemWords=FALSE){
   #   Difference 1
   #   Assumes: text is US-ASCII and line terminations are fixed
   #     Can do this through OS X (with homebrew dos2unix)
@@ -118,18 +123,21 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   #
   #   Difference 4
   #   Does not collapse contractions like don't to dont
+  #   
+  #   Difference 5
+  #   Options to collapse hyphens (to null), endash (to space), and emdashes (to space)
   #
   #   Same
   #   Removes Punctuation
   #   Removes Numbers
   #
-  #   Difference 5
+  #   Difference 6
   #   Does not remove Stop words
   #
-  #   Difference 6
+  #   Difference 7
   #   Does not do Stemming
   #
-  #   Difference 7
+  #   Difference 8
   #   Strips whitespaces - done last
   
   # requires tm package
@@ -137,6 +145,7 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   
   # helper functions
   toNone.tm <- content_transformer(toNone)
+  toSpace.tm <- content_transformer(toSpace)
   killProfane.tm <- content_transformer(killProfane)
   tolower.tm <- content_transformer(tolower)
   
@@ -172,74 +181,45 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   print("Nulling twitter slang")
   corpus <- tm_map(corpus,removeWords,TWITTERSLANG)
   
-  # 6) Collapse contractions - will not do for guess database
+  # 6) Collapse contractions - will do
   if(collapseContractions){
     print("Cleaning: Collapsing contractions.")
-    corpus <- tm_map(corpus,toNone.tm, CNT.PAT,perl=TRUE)
+    corpus <- tm_map(corpus,toNone.tm,CNT.PAT,perl=TRUE)
   }
   
-  # 7) Remove punctuation and numbers
+  # 7) Collapse hyphens, and set to blanks endash and emdash
+  if(collapseHyphens){
+    print("Nulling hyphens")
+    corpus <- tm_map(corpus,toNone.tm,HYPHEN.PAT,perl=TRUE)
+    print("ENdashes and EMdashes to blanks.")
+    corpus <- tm_map(corpus,toSpace.tm,ENDASH.PAT,perl=TRUE)
+    corpus <- tm_map(corpus,toSpace.tm,EMDASH.PAT,perl=TRUE)
+  }
+  
+  # 8) Remove punctuation and numbers
   print("Removing punctuation and numbers")
   corpus <- tm_map(corpus,removePunctuation) # may need to keep "[.!?]"
   corpus <- tm_map(corpus,removeNumbers)
   
-  # 8) Remove stopwords - will not do for guess database
+  # 9) Remove stopwords - will not do for guess database
   if(removeStopWords){
     print("Cleaning: removing english stop words.")
     corpus <- tm_map(corpus,removeWords,stopwords("english"))
   }
   
-  # 9) Remove white spaces
+  # 10) Remove white spaces
   print("Stripping whitespace")
   corpus <- tm_map(corpus,stripWhitespace)
   
-  # 10) Stemming - will not do for guess database
+  # 11) Stemming - will not do for guess database
   if(stemWords){
     corpus <- tm_map(corpus,stemDocument)
   }
-  
   return(corpus)
 }
 
 helper.f2 <- c("toSpace","toNone","killProfane","purify.corpus")
 print(paste("Created helper functions: ",paste(helper.f2)))
-
-# sampleText <- function(text.files,n.samples=1,percent=0.05){
-#   for(f in text.files){
-#     # read entire file, sample lines, and output lines
-#     print(paste("Reading file: ",f))
-#     txt <- read.txt(f)
-#     fparts <- unlist(strsplit(f,split="[.]")) # process file name for write
-#     fbase <- paste0(fparts[1],".",fparts[2])
-#     print(paste("Sampling ",round(percent*100),"%"," of the file."))
-#     for(k in 1:(n.samples)){
-#       txt.kept <- txt[sample.int(length(txt),round(percent*length(txt)))]
-#       outf <- sprintf("%s_%02i.txt",fbase,k)
-#       if(file.exists(outf)){
-#         file.remove(outf)
-#       }
-#       writeLines(txt.kept,con=outf)
-#       print(paste("Wrote sample to file: ",outf))
-#     }
-#   }
-# }
-
-# buildCorpus <- function(n.samples=1,path="."){
-#   corpus <- list()          # one entry per sample
-#   files <- dir(path)   # default is current directory
-#   for(k in seq(n.samples)){
-#     sample.files <- files[grep(sprintf("%02i",k),files)]
-#     print(paste("Creating corpus from: ",paste0(sample.files,collapse=", ")))
-#     # for individual files must use URISource.
-#     # Local encoding is UTF-8, but files should be already processed to US-ASCII
-#     # Also loads the files. Requires tm library
-#     uri <- URISource(paste("file://",sample.files,sep=""),
-#                      encoding="US-ASCII",mode='text')
-#     corpus[[k]] <- VCorpus(uri,
-#                            readerControl = list(reader=readPlain,language="en",load=TRUE))
-#   }
-#   return(corpus)
-# }
 
 sampleText <- function(percent,text.files){
   # takes filenames in a vector and returns a vector with
@@ -352,3 +332,63 @@ helper.f4 <- c("freq2ff","selectToKeep","cut.score")
 print(paste("Created helper functions: ",paste(helper.f4)))
 
 print("End of nlpTools.R")
+
+### JUNK
+
+# sampleText <- function(text.files,n.samples=1,percent=0.05){
+#   for(f in text.files){
+#     # read entire file, sample lines, and output lines
+#     print(paste("Reading file: ",f))
+#     txt <- read.txt(f)
+#     fparts <- unlist(strsplit(f,split="[.]")) # process file name for write
+#     fbase <- paste0(fparts[1],".",fparts[2])
+#     print(paste("Sampling ",round(percent*100),"%"," of the file."))
+#     for(k in 1:(n.samples)){
+#       txt.kept <- txt[sample.int(length(txt),round(percent*length(txt)))]
+#       outf <- sprintf("%s_%02i.txt",fbase,k)
+#       if(file.exists(outf)){
+#         file.remove(outf)
+#       }
+#       writeLines(txt.kept,con=outf)
+#       print(paste("Wrote sample to file: ",outf))
+#     }
+#   }
+# }
+
+# buildCorpus <- function(n.samples=1,path="."){
+#   corpus <- list()          # one entry per sample
+#   files <- dir(path)   # default is current directory
+#   for(k in seq(n.samples)){
+#     sample.files <- files[grep(sprintf("%02i",k),files)]
+#     print(paste("Creating corpus from: ",paste0(sample.files,collapse=", ")))
+#     # for individual files must use URISource.
+#     # Local encoding is UTF-8, but files should be already processed to US-ASCII
+#     # Also loads the files. Requires tm library
+#     uri <- URISource(paste("file://",sample.files,sep=""),
+#                      encoding="US-ASCII",mode='text')
+#     corpus[[k]] <- VCorpus(uri,
+#                            readerControl = list(reader=readPlain,language="en",load=TRUE))
+#   }
+#   return(corpus)
+# }
+
+# old_guess.sb <- function(trigram,scores=scoresDB,ngrams=ngramsDB,bases=basesDB){
+#   ngram <- trigram
+#   n <- 3
+#   hits <- c((0.4^3)*TOPUNI.SCORES)
+#   while(n > 0) {
+#     if(ngram %in% ngrams[[n]]){
+#       hits <-
+#         c(hits,((0.4)^(3-n))*scores[[(n+1)]]
+#           [ ngrams[[(n+1)]][ ngram == bases[[(n)]] ] ]) # basesDB is offset down by 1
+#     }
+#     # back off
+#     ngram <- dropFirstWord(ngram)
+#     n <- n-1
+#   }
+#   scores.sorted <- sort(hits,decreasing=TRUE)
+#   scores.sorted <- scores.sorted[unique(names(scores.sorted))][1:3]
+#   words.sorted <- toWords(names(scores.sorted))
+#   guesses <- sapply(words.sorted, function(x) x[length(x)] )
+#   return(data.frame(guess=guesses,scores=scores.sorted))
+# }
