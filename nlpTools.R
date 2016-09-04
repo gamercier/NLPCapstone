@@ -64,9 +64,9 @@ TWUSER.PAT <- "\\b@([a-zA-Z0-9_]{1,15})\\b"
 # contractions
 CNT.PAT <-"(?<=[a-zA-Z0-9])'(?=[a-zA-Z0-9])|(?<=[a-zA-Z0-9])\"(?=[a-zA-Z0-9])"
 # hyphens (-), en-dash(--), em-dash(---)
-HYPHEN.PAT <- "(?<=[a-zA-Z0-9])-(?=[a-zA-Z0-9])"
-ENDASH.PAT <- "(?<=[a-zA-Z0-9])--(?=[a-zA-Z0-9])" # true endash is outside ASCII code
-EMDASH.PAT <- "(?<=[a-zA-Z0-9])---(?=[a-zA-Z0-9])" # true emdash is outside ASCII code
+HYPHEN.PAT <- "(?<=[a-zA-Z0-9 ])-(?=[a-zA-Z0-9 ])"
+ENDASH.PAT <- "(?<=[a-zA-Z0-9 ])--(?=[a-zA-Z0-9 ])" # true endash is outside ASCII code
+EMDASH.PAT <- "(?<=[a-zA-Z0-9 ])---(?=[a-zA-Z0-9 ])" # true emdash is outside ASCII code
 # bad characters.
 BAD.PAT <- "[^[:alnum:][:punct:][:space:]]"
 
@@ -149,71 +149,72 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   killProfane.tm <- content_transformer(killProfane)
   tolower.tm <- content_transformer(tolower)
   
+  #### 
   # 1) Make ASCII. Already in US-ASCII with proper line termination.
   #                See result of checkRawData.R
   if(toASCII){
     print("Cleaning: Special characters")
-    corpus <- tm_map(corpus,toSpace,BAD.PAT)
+    corpus <- tm_map(corpus,toSpace.tm,BAD.PAT, mc.cores=1)
   }
   
   # 2) Set to lower case
   print("Going to lower case!")
-  corpus <- tm_map(corpus,tolower.tm)
+  corpus <- tm_map(corpus,tolower.tm, mc.cores=1)
   
   # 3) Remove lines with profanity
   print("Killing profanity!")
-  corpus <- tm_map(corpus,killProfane.tm, PROFANITY)
+  corpus <- tm_map(corpus,killProfane.tm, PROFANITY, mc.cores=1)
   
   # 2) Null url like patterns
   print("Nulling URL")
-  corpus <- tm_map(corpus,toNone.tm, URL.PAT)
+  corpus <- tm_map(corpus,toNone.tm, URL.PAT, mc.cores=1)
   
   # 3) Null email like patterns
   print("Nulling mail")
-  corpus <- tm_map(corpus,toNone.tm, MAIL.PAT)
+  corpus <- tm_map(corpus,toNone.tm, MAIL.PAT, mc.cores=1)
   
   # 4) Null twitter hash tags and user names
   print("Nulling twitter hash tags and user names")
-  corpus <- tm_map(corpus,toNone.tm, TWHASH.PAT)
-  corpus <- tm_map(corpus,toNone.tm, TWUSER.PAT)
+  corpus <- tm_map(corpus,toNone.tm, TWHASH.PAT, mc.cores=1)
+  corpus <- tm_map(corpus,toNone.tm, TWUSER.PAT, mc.cores=1)
   
   # 5) Null twitter slang
   print("Nulling twitter slang")
-  corpus <- tm_map(corpus,removeWords,TWITTERSLANG)
+  corpus <- tm_map(corpus,removeWords,TWITTERSLANG, mc.cores=1)
   
   # 6) Collapse contractions - will do
   if(collapseContractions){
     print("Cleaning: Collapsing contractions.")
-    corpus <- tm_map(corpus,toNone.tm,CNT.PAT,perl=TRUE)
+    corpus <- tm_map(corpus,toNone.tm,CNT.PAT,perl=TRUE, mc.cores=1)
   }
   
   # 7) Collapse hyphens, and set to blanks endash and emdash
   if(collapseHyphens){
     print("Nulling hyphens")
-    corpus <- tm_map(corpus,toNone.tm,HYPHEN.PAT,perl=TRUE)
+    corpus <- tm_map(corpus,toNone.tm,HYPHEN.PAT,perl=TRUE, mc.cores=1)
     print("ENdashes and EMdashes to blanks.")
-    corpus <- tm_map(corpus,toSpace.tm,ENDASH.PAT,perl=TRUE)
-    corpus <- tm_map(corpus,toSpace.tm,EMDASH.PAT,perl=TRUE)
+    corpus <- tm_map(corpus,toSpace.tm,ENDASH.PAT,perl=TRUE, mc.cores=1)
+    corpus <- tm_map(corpus,toSpace.tm,EMDASH.PAT,perl=TRUE, mc.cores=1)
   }
   
   # 8) Remove punctuation and numbers
   print("Removing punctuation and numbers")
-  corpus <- tm_map(corpus,removePunctuation) # may need to keep "[.!?]"
-  corpus <- tm_map(corpus,removeNumbers)
+  corpus <- tm_map(corpus,removePunctuation, mc.cores=1) # may need to keep "[.!?]"
+  corpus <- tm_map(corpus,removeNumbers, mc.cores=1)
   
   # 9) Remove stopwords - will not do for guess database
   if(removeStopWords){
     print("Cleaning: removing english stop words.")
-    corpus <- tm_map(corpus,removeWords,stopwords("english"))
+    corpus <- tm_map(corpus,removeWords,stopwords("english"), mc.cores=1)
   }
   
   # 10) Remove white spaces
   print("Stripping whitespace")
-  corpus <- tm_map(corpus,stripWhitespace)
+  corpus <- tm_map(corpus,stripWhitespace, mc.cores=1)
   
   # 11) Stemming - will not do for guess database
   if(stemWords){
-    corpus <- tm_map(corpus,stemDocument)
+    corpus <- tm_map(corpus,stemDocument, mc.cores=1)
   }
   return(corpus)
 }
