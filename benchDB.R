@@ -23,7 +23,7 @@ print(paste("Directory: ",getwd()))
 print(paste("Directory Files: ",paste0(text.files,collapse=", ")))
 
 # select only a fraction of the processed corpus
-# In this case 10% of the original data for each file.
+# In this case 20% of the original data for each file.
 # s.text is a list with each element one sample of the corpus
 # the corpus consists of 3 files of text.
 s.text <- lapply(c(0.20),sampleText,text.files)
@@ -55,10 +55,10 @@ for(j in seq(clean.corpus)){
 }
 
 print("Saving raw corpus and clean corpus.")
-if(file.exists("corpus.r")){
-  file.remove("corpus.r")
+if(file.exists("corpus_2.r")){
+  file.remove("corpus_2.r")
 }
-save(corpus,clean.corpus,file="corpus.r")
+save(corpus,clean.corpus,file="corpus_2.r")
 print("Finished saving corpus stuff.")
 
 # load corpus
@@ -73,18 +73,18 @@ for(k in seq_along(clean.corpus)){
 }
 
 print("Saving DTMS.")
-if(file.exists("dbdtms.r")){
-  file.remove("dbdtms.r")
+if(file.exists("dtms_2.r")){
+  file.remove("dtms_2.r")
 }
-save(dtms,file="dbdtms.r")
+save(dtms,file="dtms_2.r")
 print("Finished saving DTMS.")
 
 # Create list of quadgrams
 quads <- dtms[[1]]$quadgram$dimnames$Terms
-if(file.exists("quads.r")){
-  file.remove("quads.r")
+if(file.exists("quads_2.r")){
+  file.remove("quads_2.r")
 }
-save(quads,file="quads.r")
+save(quads,file="quads_2.r")
 print("Finished saving quadgrams")
 
 ### END

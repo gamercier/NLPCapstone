@@ -23,14 +23,17 @@ dropLastWord <- function(ngram){
   words <- toWords(ngram)
   toStr(lapply(words,function(s) { n<-length(s); s[1:(n-1)] }))
 }
+
 getLastWord <- function(ngram){
   words <- toWords(ngram)
-  toStr(lapply(words,function(s) { n<-length(s); s[-(1:(n-1))] }))
+  toStr(lapply(words,function(s) { tail(s,1) }))
 }
+
 dropFirstWord <- function(ngram) {
   words <- toWords(ngram)
   toStr(lapply(words,function(s) { n<-length(s); s[2:n] }))
 }
+countWords <- function(ngram) lapply(toWords(ngram),length)
 
 # read text file - Needs this early
 read.txt <- function(fname){
@@ -198,6 +201,10 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   }
   
   # 8) Remove punctuation and numbers
+  # punctuations in English:
+  #   periods, question mark, exclamation point
+  #   commas, dash, colon, semicolon
+  #   ellipsis, hyphen, quotation mark, apostrophe, parenthesis
   print("Removing punctuation and numbers")
   corpus <- tm_map(corpus,removePunctuation, mc.cores=1) # may need to keep "[.!?]"
   corpus <- tm_map(corpus,removeNumbers, mc.cores=1)
@@ -208,7 +215,7 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
     corpus <- tm_map(corpus,removeWords,stopwords("english"), mc.cores=1)
   }
   
-  # 10) Remove white spaces
+  # 10) Remove extra white spaces
   print("Stripping whitespace")
   corpus <- tm_map(corpus,stripWhitespace, mc.cores=1)
   
@@ -219,7 +226,33 @@ purify.corpus <- function(corpus,toASCII=FALSE,collapseContractions=FALSE,
   return(corpus)
 }
 
-helper.f2 <- c("toSpace","toNone","killProfane","purify.corpus")
+simple.purify <- function(ngram){
+  # takes ngram and return a "cleaned version"
+  
+  # regex
+  ## contraction pattern
+  CNT.PAT <-"(?<=[a-zA-Z0-9])'(?=[a-zA-Z0-9])|(?<=[a-zA-Z0-9])\"(?=[a-zA-Z0-9])"
+  ## hyphens (-), en-dash(--), em-dash(---)
+  HYPHEN.PAT <- "(?<=[a-zA-Z0-9 ])-(?=[a-zA-Z0-9 ])"
+  ENDASH.PAT <- "(?<=[a-zA-Z0-9 ])--(?=[a-zA-Z0-9 ])" # true endash is outside ASCII code
+  EMDASH.PAT <- "(?<=[a-zA-Z0-9 ])---(?=[a-zA-Z0-9 ])" # true emdash is outside ASCII code
+  # bad characters.
+  BAD.PAT <- "[^[:alnum:][:punct:][:space:]]"
+  PUNC.PAT <- "[[:punct:]]"
+  NOTALPHA <- "[^[:alpha:][:space:]]"
+  MULTISPACE <- "[[:space:]]+"
+  
+  ngram <- toNone(ngram,pattern=NOTALPHA) # gets rid of punctuation and numbers
+  ngram <- toNone(ngram,pattern=CNT.PAT,perl=TRUE) # collapse contractions
+  ngram <- toNone(ngram,pattern=HYPHEN.PAT,perl=TRUE) # collapse hyphens
+  ngram <- toSpace(ngram,pattern=ENDASH.PAT,perl=TRUE)
+  ngram <- toSpace(ngram,pattern=EMDASH.PAT,perl=TRUE)
+  ngram <- toSpace(ngram,pattern=MULTISPACE) #replaces multi space with on space
+  
+  return(str_trim(tolower(ngram)))
+}
+
+helper.f2 <- c("toSpace","toNone","killProfane","purify.corpus","simple.purify")
 print(paste("Created helper functions: ",paste(helper.f2)))
 
 sampleText <- function(percent,text.files){

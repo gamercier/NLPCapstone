@@ -18,9 +18,9 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 # Loading corpus
-source("corpus.r")
-corps <- ls(pattern="corpus")
-print(paste("Loaded corpus: ", cat(corps)))
+load("corpus.r")
+corps <- paste(dir(pattern="corpus"))
+print(paste("Loaded corpus: ", corps))
 
 print("***Generating Document Text Matrices***")
 # Second, Generate DTMS for clean corpus
@@ -31,10 +31,10 @@ for(k in seq_along(clean.corpus)){
 }
 
 print("Saving DTMS.")
-if(file.exists("dbdtms.r")){
-  file.remove("dbdtms.r")
+if(file.exists("dtms.r")){
+  file.remove("dtms.r")
 }
-save(dtms,file="dbdtms.r")
+save(dtms,file="dtms.r")
 print("Finished saving DTMS.")
 
 print("***Generating Text Document Matrices***")
@@ -44,10 +44,10 @@ for(k in seq_along(clean.corpus)){
 }
 
 print("Saving TDMS.")
-if(file.exists("dbtdms.r")){
-  file.remove("dbtdms.r")
+if(file.exists("tdms.r")){
+  file.remove("tdms.r")
 }
-save(tdms,file="dbtdms.r")
+save(tdms,file="tdms.r")
 print("Finished saving TDMS.")
 
 print("Completed makeTMS.R")
