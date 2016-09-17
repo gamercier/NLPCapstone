@@ -17,18 +17,23 @@ print("Loaded tools.")
 source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
-#Select document text matrix directory. THIS IS REQUIRED
-dtms.dir <- c("../XX.dir")
+###### Select document text matrix directory. THIS IS REQUIRED
+dtms.dir <- c("../75.dir")
 print(paste("Going to directory containing Document Text Matrix: ",dtms.dir))
 setwd(dtms.dir)
+print(paste("Current directory: ",getwd()))
 
-#Select document text matrix to load. THIS IS REQUIRED
-dtms.file <- c("dtms.r")
+###### Select document text matrix to load. THIS IS REQUIRED
+dtms.file <- c("dtmsDense.r")
 
 # Loading document text matrices
-load("dtms.r")
-dtms.var <- ls(pattern="dtms")
-print(paste("Loaded document text matrices: ", paste(dtms.var)))
+load(dtms.file)
+print("Loaded document text matrices")
+
+##### Set value of dtms ### REQUIRED
+dtms <- dtms.dense
+
+##### Set save file name and save variable names below ### REQUIRED
 
 # Computing frequencies
 
@@ -58,12 +63,27 @@ N.ngrams.db <- lapply(freqs.db, function(x) lapply(x,sum))
 #     GET number of ngrams for each N, as a list, (no repetitions), i.e. the Vocabulary
 V.ngrams.db <- lapply(ngrams.db,function(x) lapply(x,length))
 
+###### SET SAVE FILE ##### REQUIRE
+save.file <- "freqs.dense.r"
+
 print("Saving frequencies, etc...")
-if(file.exists("freqs.r")){
-  file.remove("freqs.r")
+if(file.exists(save.file)){
+  file.remove(save.file)
 }
-save(freqs.db,ngrams.db,bases.db,N.ngrams.db,V.ngrams.db,file="freqs.r")
-print("Finished saving freqs.db stuff.")
+
+###### SET NAMES TO SAVE  ## REQUIRED
+freqs.dense.db    <- freqs.db
+ngrams.dense.db   <- ngrams.db
+bases.dense.db    <- bases.db
+N.ngrams.dense.db <- N.ngrams.db
+V.ngrams.dense.db <- V.ngrams.db
+
+save(freqs.dense.db,
+     ngrams.dense.db,
+     bases.dense.db,
+     N.ngrams.dense.db,
+     V.ngrams.dense.db,file=save.file)
+print("Finished saving freqs.dense.db stuff.")
 
 print("Completed makeFreqs.R")
 

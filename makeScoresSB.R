@@ -1,7 +1,7 @@
 # Capstone Project
 # File: makeScoresSB.R
 #   Computes the frequencies and scores for stupid backoff
-#   Loads document text matrices
+#   Loads document frequency database for computations.
 
 print("Started script: makeScoresSB.R")
 # Got to project directory and load tools
@@ -15,20 +15,31 @@ print("Loaded tools.")
 
 #Switch to processed corpus directory
 source("toProcCorpusDir.R")
-print(paste("Switched to diretory",getwd()))
+print(paste("Switched to directory",getwd()))
 
 #Select freqs directory. THIS IS REQUIRED
-freqs.dir <- c("../XX.dir")
+freqs.dir <- c("../75.dir")
 print(paste("Going to directory containing frequecy data: ",freqs.dir))
 setwd(freqs.dir)
+print(paste("Switched to directory",getwd()))
 
-#Select frequency file. THIS IS REQUIRED
-freqs.file <- "freqs.r"
-print("Loading frequency data")
-load("freqs.r")
+###### Select frequency file. THIS IS REQUIRED
+freqs.file <- "freqs.trimmed.dense.r"
+print(paste("Loading frequency data from file",freqs.file))
+load(freqs.file)
+print(paste("Loaded frequency data from file",freqs.file))
 
-freqs.var <- ls(pattern="freqs")
-print(paste("Loaded document text matrices: ", paste(freqs.var)))
+###### Select frequency database. THIS IS REQUIRED
+
+db.element <- "seventyfive.pct"
+freqs.db <- list()
+ngrams.db <- list()
+bases.db <- list()
+freqs.db[[db.element]]  <- freqs.trimmed.dense.db[[db.element]]
+ngrams.db[[db.element]] <- ngrams.trimmed.dense.db[[db.element]]
+bases.db[[db.element]]  <- bases.trimmed.dense.db[[db.element]]
+
+###### SEE BELOW TO Select save file for scores database -- THIS IS REQUIRED
 
 # Define SCORING FUNCTION. Based on Stupid Back Off
 #    score(ngram) = counts(ngram)/counts(ngram with first word dropped) if n >1
@@ -44,12 +55,22 @@ print("Computing ngram scores for stupid backoff scheme.")
 scores.db <- lapply(freqs.db,score.sbackoff) # computes scores for each sample
 print("Done computing scores.")
 
-print("Saving scores database, etc... in *scoresSB.r*")
-if(file.exists("scoresSB.r")){
-  file.remove("scoresSB.r")
+#### SELECT FILE FOR SAVING -- REQUIRED
+save.file <- "scoresSB.trimmed.dense.r"
+
+#### SET NAMES FOR SAVING - REQUIRED
+scores.trimmed.dense.db <- scores.db
+ngrams.trimmed.dense.db <- ngrams.db
+bases.trimmed.dense.db  <- bases.db
+
+if(file.exists(save.file)){
+  file.remove(save.file)
 }
-save(scores.db, ngrams.db, bases.db, file="scoresSB.r")
-print("Finished saving scores database in *scoresSB.r*")
+print(paste("Saving scores database in",save.file))
+save(scores.trimmed.dense.db,
+     ngrams.trimmed.dense.db,
+     bases.trimmed.dense.db, file=save.file)
+print(paste("Finished saving scores database in",save.file))
 
 print("Completed makeScoresSB.R")
 

@@ -1,7 +1,12 @@
 # Capstone Project
 # File: trimFreqs.R
 #   Trims the Frequency vector by dropping elements thate occur less than a user
-#   defined threshold
+#   defined threshold.
+#   Scheme 1 - only one implemented
+#      Selects a given cut off for the cumulative frequency of unigram.
+#      Deletes unigrams that fall out of the 0-cum.freq.cut.off
+#      Gets the maximum frequency of unigrams cut out and uses it as a hard
+#      cut off to delete higher order unigrams that occur with lower frequency.
 
 print("Started script: trimFreqs.R")
 # Got to project directory and load tools
@@ -18,16 +23,32 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 #Select freqs directory. THIS IS REQUIRED
-freqs.dir <- c("../XX.dir")
+freqs.dir <- c("../50.dir")
 print(paste("Going to directory containing frequecy data: ",freqs.dir))
 setwd(freqs.dir)
+print(paste("Switched to diretory",getwd()))
 
 #Select frequency file to load. THIS IS REQUIRED
-freqs.file <- "freqs.r"
+freqs.file <- "freqs.dense.r"
 print("Loading frequency data")
-load("freqs.r")
-freqs <- ls(pattern="freqs")
-print(paste("Loaded frequency vectors: ", paste(freqs)))
+load(freqs.file)
+print(paste("Loaded frequency data from",freqs.file))
+
+#### FIX database labels ---- MUST DO MANUALLY NOT AS SOURCED SCRIPT!
+####        THESE NAMES SHOULD BE A FIXED IN THE CREATION OF freqs.file!
+names(freqs.dense.db) <- "fifty.pct"
+names(ngrams.dense.db) <- "fifty.pct"
+names(N.ngrams.dense.db) <- "fifty.pct"
+names(V.ngrams.dense.db) <- "fifty.pct"
+
+file.remove(freqs.file) # intention is to replace this one.
+
+save(freqs.dense.db,
+     ngrams.dense.db,
+     bases.dense.db,
+     N.ngrams.dense.db,
+     V.ngrams.dense.db, file=freqs.file) # replacing.
+#### FIX FINISHED
 
 ### ALL THIS PRESUMES THE FREQUENCY DATA IS SORTED, MOST FREQUENT FIRST!!!!!! ####
 ### IF USED THE makeFreqs.R script will do this automatically ####
@@ -52,42 +73,35 @@ names(voc.ngrams) <- names(V.ngrams)
 totals.df <- data.frame(n.voc=voc.ngrams,n.ngrams=total.ngrams)
 print(totals.df)
 
-# n.voc n.ngrams
-# unigram   68915 47756139
-# bigram   570854 34343231
-# trigram  575428 13762313
-# quadgram 224186  3198596
-
 for(ngram in names(freqs)){
   print(paste("Minimum frequency in ",ngram," is ",min(freqs[[ngram]])))
 }
 
-# [1] "Minimum frequency in  unigram  is  3"
-# [1] "Minimum frequency in  bigram  is  3"
-# [1] "Minimum frequency in  trigram  is  3"
-# [1] "Minimum frequency in  quadgram  is  3"
+# print("Computing and Plotting Frequency of Frequencies!")
+# ff <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
+# for(ngram in names(freqs)){
+#   ff[[ngram]] <- freq2ff(freqs[[ngram]])
+# }
+# #plotting histograms
+# for(ngram in names(ff)){
+#   plot(ff[[ngram]][1:200,],main=paste("Frequency of Frequencies - ",ngram))
+# }
 
-print("Computing and Plotting Frequency of Frequencies!")
-ff <- list(unigram=NULL,bigram=NULL,trigram=NULL,quadgram=NULL)
-for(ngram in names(freqs)){
-  ff[[ngram]] <- freq2ff(freqs[[ngram]])
-}
-#plotting histograms
-for(ngram in names(ff)){
-  plot(ff[[ngram]][1:200,],main=paste("Frequency of Frequencies - ",ngram))
-}
-
-print("Computing and Plotting Fractional Cummulative Frequency")
+print("Computing Fractional Cummulative Frequency")
 frac.cum <- lapply(freqs, function(x) cumsum(x)/sum(x))
-for(ngram in names(frac.cum)){
-  plot(x=1:1000,y=frac.cum[[ngram]][1:1000],
-       main=paste("Fractional Cummulative Frequency - ",ngram),
-       xlab="index",ylab="cummulative frequency")
-}
+
+# for(ngram in names(frac.cum)){
+#   plot(x=1:1000,y=frac.cum[[ngram]][1:1000],
+#        main=paste("Fractional Cummulative Frequency - ",ngram),
+#        xlab="index",ylab="cummulative frequency")
+# }
 
 ##### REQUIRED: SELECT SCHEME TO USE #### ONLY ONE ON AT A TIME #####
 scheme1 <- TRUE
 scheme2 <- FALSE
+
+#### SELECT OUTPUT FILE NAME ### REQUIRED
+save.file <- "freqs.trimmed.dense.r"
 
 ############################ scheme one:
 #   keep words that make up 99% of the total number of unigrams = dict.trimmed
@@ -159,11 +173,12 @@ if(scheme1 == TRUE){
   print(paste("The number of missing words in ngram=",c(2,3,4),"is",
               c(no.bad.bis.words,no.bad.tris.words,no.bad.quads.words)))
   
-  freqs.trimmed.dense.db    <- vector(mode="list",1)
-  ngrams.trimmed.dense.db   <- vector(mode="list",1)
-  bases.trimmed.dense.db    <- vector(mode="list",1)
-  N.ngrams.trimmed.dense.db <- vector(mode="list",1)
-  V.ngrams.trimmed.dense.db <- vector(mode="list",1)
+  ### must check this change in definition of dbs - made 2016-09-17
+  freqs.trimmed.dense.db    <- list()
+  ngrams.trimmed.dense.db   <- list()
+  bases.trimmed.dense.db    <- list()
+  N.ngrams.trimmed.dense.db <- list()
+  V.ngrams.trimmed.dense.db <- list()
   
   freqs.trimmed.dense.db[[db.element]]    <- freqs.trimmed
   ngrams.trimmed.dense.db[[db.element]]   <- ngrams.trimmed
@@ -171,17 +186,23 @@ if(scheme1 == TRUE){
   N.ngrams.trimmed.dense.db[[db.element]] <- N.ngrams.trimmed
   V.ngrams.trimmed.dense.db[[db.element]] <- V.ngrams.trimmed
   
-  print("Saving trimmed frequency database with ")
+  print("Saving frequencies, etc...")
+  if(file.exists(save.file)){
+    file.remove(save.file)
+  }
+  
+  print(paste("Saving trimmed frequency database in file ",save.file))
+  
   save(freqs.trimmed.dense.db,
        ngrams.trimmed.dense.db,
        bases.trimmed.dense.db,
        N.ngrams.trimmed.dense.db,
-       V.ngrams.trimmed.dense.db, file="freqs.trimmed.dense.r")
+       V.ngrams.trimmed.dense.db, file=save.file)
   
-  print("Finished trimming with scheme one.")
+  print("Finished trimming and saving database with scheme one.")
 }
 
-if(schem2 == TRUE) print("Scheme 2 is not active. Sorry...")
+if(scheme2 == TRUE) print("Scheme 2 is not active. Sorry...")
 
 print("Returning to top directory")
 setwd(prj.dir)

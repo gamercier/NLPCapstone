@@ -17,14 +17,14 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 #Select document text matrix directory. THIS IS REQUIRED
-dtms.dir <- c("../XX.dir")
+dtms.dir <- c("../75.dir")
 print(paste("Going to directory containing document text matrix: ",dtms.dir))
 setwd(dtms.dir)
+print(paste("Switched to diretory",getwd()))
 
 # Loading document text matrices
 load("dtms.r")
-dtms.var <- ls(pattern="dtms")
-print(paste("Loaded document text matrices: ", paste(dtms.var)))
+print("Loaded document text matrices")
 
 trimDTM <- function(dtm,sparsity=0.33){
   dtm.dense <- list()
