@@ -5,6 +5,8 @@
 #   Generates the Corpus object, and cleans it.
 #   Saves the cleaned corpus
 
+#### REQUIRED TO SELECT DIRECTORY WHERE TO SAVE CORPUS - SEE END ###
+
 print("Started script: makeCorpus.R")
 # Got to project directory and load tools
 prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
@@ -58,6 +60,10 @@ for(j in seq(clean.corpus)){
     meta(clean.corpus[[j]][[k]],"id") <- text.files[k]
   }
 }
+
+save.corpus.dir <- c("../XX.dir")
+print(paste("Moving to directory before saving corpus:",corpus.dir))
+setwd(save.corpus.dir)
 
 print("Saving raw corpus and clean corpus.")
 print(paste("Using directory:",getwd()))

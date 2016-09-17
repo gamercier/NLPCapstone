@@ -17,48 +17,18 @@ print("Loaded tools.")
 source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
-# Loading document text matrices
-load("dtmsDense.r")
-dtms.var <- ls(pattern="dtms")
-print(paste("Loaded document text matrices: ", paste(dtms.var)))
+#Select freqs directory. THIS IS REQUIRED
+freqs.dir <- c("../XX.dir")
+print(paste("Going to directory containing frequecy data: ",freqs.dir))
+setwd(freqs.dir)
 
-print(paste("This document text matrix contains:",names(dtms.dense)))
+#Select frequency file. THIS IS REQUIRED
+freqs.file <- "freqs.r"
+print("Loading frequency data")
+load("freqs.r")
 
-# Computing frequencies
-
-# dtms is a list with one element per sample set. Each element has
-# DTM for unigram ... quadgram (or higher depending on max.ngram)
-print("Computing frequencies and sorting in decreasing order...")
-freqs.dense.db <- lapply(dtms.dense,dtm2freq)
-
-# Generating additional data
-
-#### NOTE ####
-# Structure of object freqs.db is a list with one element per sample set
-# For each sample set you have a list with frequencies for unigrams, bigrams, trigrams, and
-# and quadgrams.
-#    SORT - already done
-#    COLLECT sorted ngrams
-ngrams.dense.db <- lapply(freqs.dense.db, # over samples
-                          function(x) lapply(x, # over n-grams of each sample
-                                             names))
-#    COLLECT the base, or the ngram minus the last word; nonsense for unigrams
-bases.dense.db <- lapply(ngrams.dense.db,
-                   function(x) { lapply(x[-1], function(x) unlist(dropLastWord(x))) } )
-
-#     GET number of ngrams for each N, as a list, (includes repetitions)
-N.ngrams.dense.db <- lapply(freqs.dense.db, function(x) lapply(x,sum))
-# 
-#     GET number of ngrams for each N, as a list, (no repetitions), i.e. the Vocabulary
-V.ngrams.dense.db <- lapply(ngrams.dense.db,function(x) lapply(x,length))
-
-print("Saving frequencies, etc...")
-if(file.exists("freqs.dense.r")){
-  file.remove("freqs.dense.r")
-}
-save(freqs.dense.db,ngrams.dense.db,bases.dense.db,N.ngrams.dense.db,
-     V.ngrams.dense.db,file="freqs.dense.r")
-print("Finished saving freqs.dense.db stuff.")
+freqs.var <- ls(pattern="freqs")
+print(paste("Loaded document text matrices: ", paste(freqs.var)))
 
 # Define SCORING FUNCTION. Based on Stupid Back Off
 #    score(ngram) = counts(ngram)/counts(ngram with first word dropped) if n >1
@@ -71,15 +41,15 @@ print("Finished saving freqs.dense.db stuff.")
 #
 
 print("Computing ngram scores for stupid backoff scheme.")
-scores.dense.db <- lapply(freqs.dense.db,score.sbackoff) # computes scores for each sample
+scores.db <- lapply(freqs.db,score.sbackoff) # computes scores for each sample
 print("Done computing scores.")
 
-print("Saving scores database, etc... in *scoresSB.dense.r*")
-if(file.exists("scoresSB.dense.r")){
-  file.remove("scoresSB.dense.r")
+print("Saving scores database, etc... in *scoresSB.r*")
+if(file.exists("scoresSB.r")){
+  file.remove("scoresSB.r")
 }
-save(scores.dense.db, ngrams.dense.db, bases.dense.db, file="scoresSB.dense.r")
-print("Finished saving scores database in *scoresSB.dense.r*")
+save(scores.db, ngrams.db, bases.db, file="scoresSB.r")
+print("Finished saving scores database in *scoresSB.r*")
 
 print("Completed makeScoresSB.R")
 

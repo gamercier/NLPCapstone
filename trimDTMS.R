@@ -16,6 +16,11 @@ print("Loaded tools.")
 source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
+#Select document text matrix directory. THIS IS REQUIRED
+dtms.dir <- c("../XX.dir")
+print(paste("Going to directory containing document text matrix: ",dtms.dir))
+setwd(dtms.dir)
+
 # Loading document text matrices
 load("dtms.r")
 dtms.var <- ls(pattern="dtms")

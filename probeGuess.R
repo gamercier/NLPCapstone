@@ -70,16 +70,16 @@ prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
 setwd(prj.dir); getwd()
 
 print("Loading data for testing!")
-if(file.exists(file.path(prj.dir,"test_quads_dev.r"))){
-  load(file.path(prj.dir,"test_quads_dev.r"))
-  print("Loaded (test_quads_dev.r) development quadgrams for testing.")
+if(file.exists(file.path(prj.dir,"quads_tst.r"))){
+  load(file.path(prj.dir,"quads_tst.r"))
+  print("Loaded (quads_tst.r) development quadgrams for testing.")
 } else { # not present produce it
   load(file.path(prj.dir,"quads_dev.r"))
   set.seed(1974) # for reproducibility
   n.sample <- 1000
   test.sample <- quads[sample.int(length(quads),n.sample)]
-  save(test.sample,file=file.path(prj.dir,"test_quads_dev.r"))
-  print("Built and saved, test_quads_dev.r, new set of quadgrams from development set for testing")
+  save(test.sample,file=file.path(prj.dir,"quads_tst.r"))
+  print("Built and saved, quads_tst.r, new set of quadgrams from development set for testing")
 }
 
 #### set guessing function:
@@ -300,6 +300,277 @@ for(alpha in alphas){
 # [1] "Hits:  80  out of  1000 alpha= 0.4"
 # [1] "Hits:  76  out of  1000 alpha= 0.6"
 # [1] "Hits:  76  out of  1000 alpha= 0.8"
+
+########## Test Series C: input: test_quads_dev.r; method: stupid backoff; db: 50% corpus: scores.dense.db
+############## VERSION SIMPLE WITH BASEDB #########
+# Change directory to location of project directory and load tools
+prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
+setwd(prj.dir); getwd()
+
+print("Loading data for testing!")
+if(file.exists(file.path(prj.dir,"test_quads_dev.r"))){
+  load(file.path(prj.dir,"test_quads_dev.r"))
+  print("Loaded (test_quads_dev.r) development quadgrams for testing.")
+} else { # not present produce it
+  load(file.path(prj.dir,"quads_dev.r"))
+  set.seed(1974) # for reproducibility
+  n.sample <- 1000
+  test.sample <- quads[sample.int(length(quads),n.sample)]
+  save(test.sample,file=file.path(prj.dir,"test_quads_dev.r"))
+  print("Built and saved, test_quads_dev.r, new set of quadgrams from development set for testing")
+}
+
+# scoresDB <- scores.dense.db$fifty.pct
+# ngramsDB <- ngrams.dense.db$fifty.pct
+# basesDB  <-  bases.dense.db$fifty.pct 
+# TOP.UNI.SCORES <- scoresDB$unigram[1:3] # presumed to be sorted with higher score first
+# ALPHA <- 0.4
+
+simple_guess.sb <- function(base_ngram){
+  words <- unlist(toWords(base_ngram))
+  n <- length(words)   # size of base_ngram. ngram size is n+1
+  nMax <- n
+  scores <- (ALPHA^nMax)*TOP.UNI.SCORES # ngram is unigram (base_ngram is ""), n=0
+  while(n>0){
+    base <- paste(words[(nMax-n+1):nMax],collapse=" ")
+    hits <- base == basesDB[[n]]  # basesDB[[n]] has base for ngramsDB[[(n+1)]]
+    if(sum(hits)){
+      # scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ ngramsDB[[(n+1)]][hits] ])
+      scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ hits ])
+    }
+    n <- n-1
+  }
+  guesses <- top3(scores)
+  data.frame(guess=unlist(getLastWord(names(guesses)))[1:3],
+             scores=guesses[1:3],row.names=c("1st","2nd","3rd"))
+}
+
+guess.sb <- simple_guess.sb
+
+# Change directory to corpus directory
+print("Loading scoresSB.dense.r database ...")
+download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
+proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
+setwd(proc.corpus.dir); getwd()
+load("scoresSB.dense.r") # loads variable short.dbs
+print("Finished loading scoresSB.dense.r databases!")
+
+##### Test Series C: 50% corpus scores.dense.db but guess.sb <- simple_guess.sb
+#####   clean corpus from unix.xx.txt, but with purify options toASCII, collapseContractions,
+#####   and collapseHyphens. DTM trimmed to sparsity 0%. (actually 33% but goes to 0%)
+##### test data from test_quads_dev.r have purify with options toASCII, collapseContractions,
+#####   and collapseHyphens OFF! NOT MATCHING scores.dense.db
+
+#### Test Series C: Test 1 db: scores.dense.db$50.pct but guess.sb <- simple_guess.sb
+# loading scores db from 50 pct corpus with sparsity = 0
+scoresDB <- scores.dense.db$fifty.pct ; TOP.UNI.SCORES <- scoresDB$unigram[1:3]
+ngramsDB <- ngrams.dense.db$fifty.pct ; basesDB <- bases.dense.db$fifty.pct
+alphas <- c(0.2,0.4,0.6,0.8)
+print("Test Series C Test 1: input: quads_dev.r; database: 50pct; method: stupid backoff")
+for(alpha in alphas){
+  ALPHA <- alpha
+  results <- testing(test.sample)
+  print(paste("Hits: ",sum(results)," out of ",length(results),"alpha=",ALPHA))
+}
+
+# [1] "Test Series C Test 1: input: sample_quads_dev.r; database: 50pct; method: stupid backoff"
+# [1] "Hits:  16  out of  1000 alpha= 0.2"
+# [1] "Hits:  17  out of  1000 alpha= 0.4"
+# [1] "Hits:  19  out of  1000 alpha= 0.6"
+# [1] "Hits:  19  out of  1000 alpha= 0.8"
+
+# Looks like a larger corpus (50% sample) introduces a lot of noise and things get worse.
+# There are 224,186 unique quadrams (length(ngramsDB$quadgram))
+# However, 10,611 of these only appear once!
+# sum(scoresDB$quadgram[scoresDB$quadgram == 1])
+
+# Let's look at the cases with 1%, 5%, and 10%.
+# 1%:       120/862    = 13.9%
+# 5%:       960/10545  = 9.1%
+# 10%:     2067/27812  = 7.4%
+# 50%:    10611/224186 = 4.7%
+
+# Conclusion:
+# Increasing the sample of the corpus, increases the number of 1 time quadgrams
+# by a factor of 1.8/% increase in sample, or 80% increase/% increase in sample.
+# However, the fraction of these quadgrams, decreases much slower, -20%/% increase in sample
+###############################################################################
+
+########## TEST D repeats TEST C but input has been cleaned to match scoresDB
+##########
+########## Test Series D: input: test_quads_dev.r; method: stupid backoff; db: 50% corpus: scores.dense.db
+############## VERSION SIMPLE WITH BASEDB #########
+# Change directory to location of project directory and load tools
+prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
+setwd(prj.dir); getwd()
+
+print("Loading data for testing!")
+if(file.exists(file.path(prj.dir,"test_quads_dev.r"))){
+  load(file.path(prj.dir,"test_quads_dev.r"))
+  print("Loaded (test_quads_dev.r) development quadgrams for testing.")
+} else { # not present produce it
+  load(file.path(prj.dir,"quads_dev.r"))
+  set.seed(1974) # for reproducibility
+  n.sample <- 1000
+  test.sample <- quads[sample.int(length(quads),n.sample)]
+  save(test.sample,file=file.path(prj.dir,"test_quads_dev.r"))
+  print("Built and saved, test_quads_dev.r, new set of quadgrams from development set for testing")
+}
+
+# scoresDB <- scores.dense.db$fifty.pct
+# ngramsDB <- ngrams.dense.db$fifty.pct
+# basesDB  <-  bases.dense.db$fifty.pct 
+# TOP.UNI.SCORES <- scoresDB$unigram[1:3] # presumed to be sorted with higher score first
+# ALPHA <- 0.4
+
+simple_guess.sb <- function(base_ngram){
+  words <- unlist(toWords(base_ngram))
+  n <- length(words)   # size of base_ngram. ngram size is n+1
+  nMax <- n
+  scores <- (ALPHA^nMax)*TOP.UNI.SCORES # ngram is unigram (base_ngram is ""), n=0
+  while(n>0){
+    base <- paste(words[(nMax-n+1):nMax],collapse=" ")
+    hits <- base == basesDB[[n]]  # basesDB[[n]] has base for ngramsDB[[(n+1)]]
+    if(sum(hits)){
+      # scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ ngramsDB[[(n+1)]][hits] ])
+      scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ hits ])
+    }
+    n <- n-1
+  }
+  guesses <- top3(scores)
+  data.frame(guess=unlist(getLastWord(names(guesses)))[1:3],
+             scores=guesses[1:3],row.names=c("1st","2nd","3rd"))
+}
+
+guess.sb <- simple_guess.sb
+
+# Change directory to corpus directory
+print("Loading scoresSB.dense.r database ...")
+download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
+proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
+setwd(proc.corpus.dir); getwd()
+load("scoresSB.dense.r") # loads variable short.dbs
+print("Finished loading scoresSB.dense.r databases!")
+
+##### Test Series D: 50% corpus scores.dense.db but guess.sb <- simple_guess.sb
+#####   clean corpus from unix.xx.txt, but with purify options toASCII, collapseContractions,
+#####   and collapseHyphens. DTM trimmed to sparsity 0%. (actually 33% but goes to 0%)
+##### test data from test_quads_dev.r have purify options MATCHING scores.dense.db
+
+#### Test Series D: Test 1 db: scores.dense.db$50.pct but guess.sb <- simple_guess.sb
+# loading scores db from 50 pct corpus with sparsity = 0
+scoresDB <- scores.dense.db$fifty.pct ; TOP.UNI.SCORES <- scoresDB$unigram[1:3]
+ngramsDB <- ngrams.dense.db$fifty.pct ; basesDB <- bases.dense.db$fifty.pct
+alphas <- c(0.2,0.4,0.6,0.8)
+print("Test Series C Test 1: input: quads_dev.r; database: 50pct; method: stupid backoff")
+for(alpha in alphas){
+  ALPHA <- alpha
+  results <- testing(test.sample)
+  print(paste("Hits: ",sum(results)," out of ",length(results),"alpha=",ALPHA))
+}
+
+# [1] "Hits:  21  out of  1000 alpha= 0.2"
+# [1] "Hits:  25  out of  1000 alpha= 0.4"
+# [1] "Hits:  25  out of  1000 alpha= 0.6"
+# [1] "Hits:  25  out of  1000 alpha= 0.8"
+
+# Conclusion: Preprocessing test quadgrams to match the training set
+# preprocessing lead to more hits. Slightly larger value of alpha lead
+# to better results.
+
+########## TEST E repeats TEST D but uses a trimmed version of the scores.db
+##########
+########## Test Series E: input: test_quads_dev.r; method: stupid backoff;
+#                         db: 50% corpus: scores.trimmed.dense.db
+############## VERSION SIMPLE WITH BASEDB #########
+# Change directory to location of project directory and load tools
+prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
+setwd(prj.dir); getwd()
+
+print("Loading data for testing!")
+if(file.exists(file.path(prj.dir,"test_quads_dev.r"))){
+  load(file.path(prj.dir,"test_quads_dev.r"))
+  print("Loaded (test_quads_dev.r) development quadgrams for testing.")
+} else { # not present produce it
+  load(file.path(prj.dir,"quads_dev.r"))
+  set.seed(1974) # for reproducibility
+  n.sample <- 1000
+  test.sample <- quads[sample.int(length(quads),n.sample)]
+  save(test.sample,file=file.path(prj.dir,"test_quads_dev.r"))
+  print("Built and saved, test_quads_dev.r, new set of quadgrams from development set for testing")
+}
+
+# scoresDB <- scores.trimmed.dense.db$fifty.pct
+# ngramsDB <- ngrams.trimmed.dense.db$fifty.pct
+# basesDB  <-  bases.trimmed.dense.db$fifty.pct 
+# TOP.UNI.SCORES <- scoresDB$unigram[1:3] # presumed to be sorted with higher score first
+# ALPHA <- 0.4
+
+simple_guess.sb <- function(base_ngram){
+  words <- unlist(toWords(base_ngram))
+  n <- length(words)   # size of base_ngram. ngram size is n+1
+  nMax <- n
+  scores <- (ALPHA^nMax)*TOP.UNI.SCORES # ngram is unigram (base_ngram is ""), n=0
+  while(n>0){
+    base <- paste(words[(nMax-n+1):nMax],collapse=" ")
+    hits <- base == basesDB[[n]]  # basesDB[[n]] has base for ngramsDB[[(n+1)]]
+    if(sum(hits)){
+      # scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ ngramsDB[[(n+1)]][hits] ])
+      scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ hits ])
+    }
+    n <- n-1
+  }
+  guesses <- top3(scores)
+  data.frame(guess=unlist(getLastWord(names(guesses)))[1:3],
+             scores=guesses[1:3],row.names=c("1st","2nd","3rd"))
+}
+
+guess.sb <- simple_guess.sb
+
+# Change directory to corpus directory
+print("Loading scoresSB.dense.r database ...")
+download.dir <- "nlpData.dir"; sub.dir <- "final"; proc.corpus.dir <- "proc"
+proc.corpus.dir <- file.path(prj.dir,download.dir,sub.dir,proc.corpus.dir)
+setwd(proc.corpus.dir); getwd()
+load("scoresSB.trimmed.dense.r") 
+print("Finished loading scoresSB.trimmed.dense.r databases!")
+
+##### Test Series E: 50% corpus scores.trimmed.dense.db
+#####                but guess.sb <- simple_guess.sb
+#####   clean corpus from unix.xx.txt, but with purify options toASCII, collapseContractions,
+#####   and collapseHyphens. DTM sparsity 0%. (actually 33% but goes to 0%)
+##### test data from test_quads_dev.r have purify options MATCHING scores.dense.db
+
+#### Test Series E: Test 1
+# db: scores.trimmed.dense.db$50.pct but guess.sb <- simple_guess.sb
+# loading scores db from 50 pct corpus with sparsity = 0, but trimmed
+scoresDB <- scores.trimmed.dense.db$fifty.pct
+TOP.UNI.SCORES <- scoresDB$unigram[1:3]
+ngramsDB <- ngrams.trimmed.dense.db$fifty.pct
+basesDB <- bases.trimmed.dense.db$fifty.pct
+
+alphas <- c(0.2,0.4,0.6,0.8)
+print("Test Series E Test 1: input: test_quads_dev.r; database: 50pct, trimmed; method: stupid backoff")
+for(alpha in alphas){
+  ALPHA <- alpha
+  results <- testing(test.sample)
+  print(paste("Hits: ",sum(results)," out of ",length(results),"alpha=",ALPHA))
+}
+
+# [1] "Hits:  34  out of  1000 alpha= 0.2"
+# [1] "Hits:  34  out of  1000 alpha= 0.4"
+# [1] "Hits:  32  out of  1000 alpha= 0.6"
+# [1] "Hits:  33  out of  1000 alpha= 0.8"
+
+#Conclusion: trimming the database improve the hits but now
+#  the alpha is almost irrelevant.
+# Improvement is about 50%.
+
+# TO DO NEXT
+# REPEAT USING Database from 1 to 10% of corpus.
+# Expect a hit rate of around 90-100
+
+
 
 ### ================================= Evaluating vec_guess.sb vs simple_guess.sb
 # results.simple_guess alpha 0.2  using scoresDB$one.pct
