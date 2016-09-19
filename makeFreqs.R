@@ -19,6 +19,11 @@ print(paste("Switched to diretory",getwd()))
 
 ###### Select document text matrix directory. THIS IS REQUIRED
 dtms.dir <- c("../75.dir")
+###### Select name for sample. THIS IS REQUIRED
+sample.name <- "seventyfive.pct"
+###### SET SAVE FILE #####  THIS IS REQUIRED
+save.file <- "freqs.dense.r"
+
 print(paste("Going to directory containing Document Text Matrix: ",dtms.dir))
 setwd(dtms.dir)
 print(paste("Current directory: ",getwd()))
@@ -33,8 +38,6 @@ print("Loaded document text matrices")
 ##### Set value of dtms ### REQUIRED
 dtms <- dtms.dense
 
-##### Set save file name and save variable names below ### REQUIRED
-
 # Computing frequencies
 
 # dtms is a list with one element per sample set. Each element has
@@ -42,29 +45,7 @@ dtms <- dtms.dense
 print("Computing frequencies and sorting in decreasing order...")
 freqs.db <- lapply(dtms,dtm2freq) # THIS RETURNS SORTED HIGHER FREQ FIRST
 
-# Generating additional data
-
-#### NOTE ####
-# Structure of object freqs.db is a list with one element per sample set
-# For each sample set you have a list with frequencies for unigrams, bigrams, trigrams, and
-# and quadgrams.
-#    SORT - already done
-#    COLLECT sorted ngrams
-ngrams.db <- lapply(freqs.db, # over samples
-                          function(x) lapply(x, # over n-grams of each sample
-                                             names))
-#    COLLECT the base, or the ngram minus the last word; nonsense for unigrams
-bases.db <- lapply(ngrams.db,
-                         function(x) { lapply(x[-1], function(x) unlist(dropLastWord(x))) } )
-
-#     GET number of ngrams for each N, as a list, (includes repetitions)
-N.ngrams.db <- lapply(freqs.db, function(x) lapply(x,sum))
-# 
-#     GET number of ngrams for each N, as a list, (no repetitions), i.e. the Vocabulary
-V.ngrams.db <- lapply(ngrams.db,function(x) lapply(x,length))
-
-###### SET SAVE FILE ##### REQUIRE
-save.file <- "freqs.dense.r"
+names(freqs.db) <- sample.name
 
 print("Saving frequencies, etc...")
 if(file.exists(save.file)){
@@ -73,16 +54,8 @@ if(file.exists(save.file)){
 
 ###### SET NAMES TO SAVE  ## REQUIRED
 freqs.dense.db    <- freqs.db
-ngrams.dense.db   <- ngrams.db
-bases.dense.db    <- bases.db
-N.ngrams.dense.db <- N.ngrams.db
-V.ngrams.dense.db <- V.ngrams.db
 
-save(freqs.dense.db,
-     ngrams.dense.db,
-     bases.dense.db,
-     N.ngrams.dense.db,
-     V.ngrams.dense.db,file=save.file)
+save(freqs.dense.db,file=save.file)
 print("Finished saving freqs.dense.db stuff.")
 
 print("Completed makeFreqs.R")

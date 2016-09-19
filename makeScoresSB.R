@@ -29,15 +29,11 @@ print(paste("Loading frequency data from file",freqs.file))
 load(freqs.file)
 print(paste("Loaded frequency data from file",freqs.file))
 
-###### Select frequency database. THIS IS REQUIRED
+#### SELECT FILE FOR SAVING -- REQUIRED
+save.file <- "scoresSB.trimmed.dense.r"
 
-db.element <- "seventyfive.pct"
-freqs.db <- list()
-ngrams.db <- list()
-bases.db <- list()
-freqs.db[[db.element]]  <- freqs.trimmed.dense.db[[db.element]]
-ngrams.db[[db.element]] <- ngrams.trimmed.dense.db[[db.element]]
-bases.db[[db.element]]  <- bases.trimmed.dense.db[[db.element]]
+###### Set frequency database. THIS REQUIRED
+freqs.db <- freqs.trimmed.dense.db
 
 ###### SEE BELOW TO Select save file for scores database -- THIS IS REQUIRED
 
@@ -55,8 +51,9 @@ print("Computing ngram scores for stupid backoff scheme.")
 scores.db <- lapply(freqs.db,score.sbackoff) # computes scores for each sample
 print("Done computing scores.")
 
-#### SELECT FILE FOR SAVING -- REQUIRED
-save.file <- "scoresSB.trimmed.dense.r"
+ngrams.db <- lapply(scores.db,function(x) lapply(x,names))
+bases.db  <- lapply( ngrams.db,function(x) { lapply( x[2:length(x)],
+                    function(y) unlist(dropLastWord(y)) ) } )
 
 #### SET NAMES FOR SAVING - REQUIRED
 scores.trimmed.dense.db <- scores.db
@@ -76,4 +73,5 @@ print("Completed makeScoresSB.R")
 
 print("Resetting to project directory.")
 setwd(prj.dir)
+
 
