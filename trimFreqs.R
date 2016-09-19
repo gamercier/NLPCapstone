@@ -32,7 +32,7 @@ freqs.file <- "freqs.dense.r"
 db.element <- "seventyfive.pct"
 
 #### SELECT percentage of unigrams to keep  -- THIS IS REQUIRED
-pct.to.keep <- 0.80
+pct.to.keep <- 0.95
 
 ##### REQUIRED: SELECT SCHEME TO USE #### ONLY ONE ON AT A TIME #####
 scheme1 <- TRUE

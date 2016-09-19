@@ -191,6 +191,8 @@ vec_guess.sb <- function(ngram){
 # TOP.UNI.SCORES <- scoresDB$unigram[1:3] # presumed to be sorted with higher score first
 # ALPHA <- 0.4
 
+# simple_guess_sb was modified 2016-09-18 stringsAsFactors = FALSE
+#### THIS only really need scoresDB and basesDB with ALPHA and TOP.UNI.SCORES
 simple_guess.sb <- function(base_ngram){
   words <- unlist(toWords(base_ngram))
   n <- length(words)   # size of base_ngram. ngram size is n+1
@@ -200,13 +202,16 @@ simple_guess.sb <- function(base_ngram){
     base <- paste(words[(nMax-n+1):nMax],collapse=" ")
     hits <- base == basesDB[[n]]  # basesDB[[n]] has base for ngramsDB[[(n+1)]]
     if(sum(hits)){
-      scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ ngramsDB[[(n+1)]][hits] ])
+      # scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ ngramsDB[[(n+1)]][hits] ])
+      scores <- c(scores,(ALPHA^(nMax-n))*scoresDB[[(n+1)]][ hits ])
     }
     n <- n-1
   }
   guesses <- top3(scores)
   data.frame(guess=unlist(getLastWord(names(guesses)))[1:3],
-             scores=guesses[1:3],row.names=c("1st","2nd","3rd"))
+             scores=guesses[1:3], sources=names(guesses),
+             row.names=c("1st","2nd","3rd"),
+             stringsAsFactors = FALSE)
 }
 
 #################END OF VERSIONS OF guess.sb ###################################

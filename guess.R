@@ -61,8 +61,9 @@ top3 <- function(v){
   return(v[idx])
 }
 
+# simple_guess_sb was modified 2016-09-18 stringsAsFactors = FALSE
+# only needs scoresDB, basesDB, ALPHA, and TOP.UNI.SCORES
 simple_guess.sb <- function(base_ngram){
-  # NEEDS scoresDB, ngramsDB, basesDB, ALPHA
   words <- unlist(toWords(base_ngram))
   n <- length(words)   # size of base_ngram. ngram size is n+1
   nMax <- n
@@ -77,8 +78,10 @@ simple_guess.sb <- function(base_ngram){
     n <- n-1
   }
   guesses <- top3(scores)
-  data.frame(guess=unlist(getLastWord(names(guesses))),
-             scores=guesses,row.names=c("1st","2nd","3rd"))
+  data.frame(guess=unlist(getLastWord(names(guesses)))[1:3],
+             scores=guesses[1:3], sources=names(guesses),
+             row.names=c("1st","2nd","3rd"),
+             stringsAsFactors = FALSE)
 }
 
 guess.sb <- simple_guess.sb
