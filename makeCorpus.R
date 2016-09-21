@@ -31,8 +31,8 @@ print(paste("Processed Corpus Directory Files: ",paste0(text.files,collapse=", "
 # the corpus consists of 3 files of text.
 pcent <- c(0.01,0.05,0.10)
 if(length(pcent) == 1 & pcent == 1.0){
-  s.text <- lapply(text.files, read.txt)
-  names(s.text) <- "1.0"
+  s.text <- list("1.0"=lapply(text.files, read.txt))
+  names(s.text[[1]]) <- text.files
 } else {
   s.text <- lapply(pcent,sampleText,text.files)
 }
@@ -66,8 +66,8 @@ for(j in seq(clean.corpus)){
   }
 }
 
-save.corpus.dir <- c("../XX.dir")
-print(paste("Moving to directory before saving corpus:",corpus.dir))
+save.corpus.dir <- c("../100.dir")
+print(paste("Moving to directory before saving corpus:",save.corpus.dir))
 setwd(save.corpus.dir)
 
 print("Saving raw corpus and clean corpus.")
