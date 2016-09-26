@@ -9,6 +9,9 @@ prj.dir <- file.path(Sys.getenv("HOME"),"git","NLPCapstone")
 setwd(prj.dir)
 print(paste("Current directory: ",getwd()))
 
+library(doMC)
+registerDoMC(2)
+
 library(tm)
 print("Loaded tm library.")
 
@@ -17,7 +20,7 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 #Select corpus directory. THIS IS REQUIRED
-corpus.dir <- c("../100.dir")
+corpus.dir <- c("../10.dir")
 print(paste("Going to directory containing corpus: ",corpus.dir))
 setwd(corpus.dir)
 
@@ -39,7 +42,7 @@ buildDTM <- function(corpus,min.ngram=1,max.ngram=4){
     }
   }
   for(i in seq(min.ngram,max.ngram)){
-    tokenizers[[i]] <- makeTokenizer(i)
+      tokenizers[[as.character(i)]] <- makeTokenizer(i)
   }
   return(
     lapply(tokenizers,
@@ -57,7 +60,7 @@ n.grams.names <- c("unigram","bigram","trigram","quadgram")
 for(n.choice in seq(1,4)){
   dtms <- lapply(clean.corpus,buildDTM,min.ngram=n.choice,max.ngram=n.choice)
   for(k in seq_along(clean.corpus)){
-    names(dtms[[k]])<- n.grams.names[n.choice]
+    names(dtms[[k]]) <- n.grams.names[n.choice]
   }
   
   out.file <- paste("dtms_",n.choice,".r",sep="")
@@ -76,5 +79,4 @@ print("Completed makeTMSsimple.R")
 
 print("Resetting to project directory.")
 setwd(prj.dir)
-
 
