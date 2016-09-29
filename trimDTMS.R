@@ -17,7 +17,7 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 #Select document text matrix directory. THIS IS REQUIRED
-dtms.dir <- c("../75.dir")
+dtms.dir <- c("../100.dir")
 print(paste("Going to directory containing document text matrix: ",dtms.dir))
 setwd(dtms.dir)
 print(paste("Switched to diretory",getwd()))

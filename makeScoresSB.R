@@ -18,7 +18,7 @@ source("toProcCorpusDir.R")
 print(paste("Switched to directory",getwd()))
 
 #Select freqs directory. THIS IS REQUIRED
-freqs.dir <- c("../75.dir")
+freqs.dir <- c("../100.dir")
 print(paste("Going to directory containing frequecy data: ",freqs.dir))
 setwd(freqs.dir)
 print(paste("Switched to directory",getwd()))

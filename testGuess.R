@@ -98,8 +98,8 @@ test.file <- "test_web_dev.r"
 #####      scores file
 #####      save file
 #####      database element - all REQUIRED ###########
-wrk.dir <- "75.dir"
-db.element <- "seventyfive.pct"
+wrk.dir <- "100.dir"
+db.element <- "onehundred"
 scores.file <- "scoresSB.trimmed.dense.r"
 save.file <- "dev_test_web.r"
 
@@ -225,6 +225,7 @@ print(paste("Returning directory to",getwd()))
 # [1] "Hits:  260  out of  1000 alpha= 0.8"
 # [1] "Results saved in dev_test_web.r"
 
+####################################### 75% Sample Size 
 ##### 75% sample size
 ##### AC
 
@@ -268,7 +269,6 @@ print(paste("Returning directory to",getwd()))
 # [1] "Hits:  94  out of  1000 alpha= 0.8"
 # [1] "Results saved in dev_test_ac.r"
 
-
 ##### WEB
 
 # trimming 80%
@@ -311,6 +311,21 @@ print(paste("Returning directory to",getwd()))
 # [1] "Hits:  279  out of  1000 alpha= 0.8"
 # [1] "Results saved in dev_test_web.r"
 
+####################################### 100% Sample Size 
+##### WEB
+
+## trimming 95%
+# [1] "Test: test_web_dev.r database: onehundred method: stupid backoff"
+# [1] "Scores database directory: /Users/gamercier/git/NLPCapstone/nlpData.dir/dbs/100.dir"
+# [1] "Scores file: scoresSB.trimmed.dense.r"
+# [1] "Hits:  262  out of  1000 alpha= 0.2"
+# [1] "Hits:  245  out of  1000 alpha= 0.4"
+# [1] "Hits:  230  out of  1000 alpha= 0.6"
+# [1] "Hits:  223  out of  1000 alpha= 0.8"
+
+# NOTICE NO IMPROVEMENT FROM 75%/95% trimmed to 100%/95% trimmed.
+
+#######################################
 # Analysis of 75% sample with 90% trim Web sample
 # hits:
 #   quads:

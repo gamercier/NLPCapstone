@@ -18,9 +18,9 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 ###### Select document text matrix directory. THIS IS REQUIRED
-dtms.dir <- c("../75.dir")
+dtms.dir <- c("../100.dir")
 ###### Select name for sample. THIS IS REQUIRED
-sample.name <- "seventyfive.pct"
+sample.name <- "onehundred"
 ###### SET SAVE FILE #####  THIS IS REQUIRED
 save.file <- "freqs.dense.r"
 

@@ -2,7 +2,8 @@
 #   Test performance of guess application prototype in nextWordApp
 
 setwd("~/git/nextWordApp")
-source("nextWordApp.R")
+#source("nextWordApp.R")
+source("global.R")
 
 library(pryr)
 app.size <- mem_used()

@@ -23,13 +23,13 @@ source("toProcCorpusDir.R")
 print(paste("Switched to diretory",getwd()))
 
 #### Select freqs directory.          -- THIS IS REQUIRED
-freqs.dir <- c("../75.dir")
+freqs.dir <- c("../100.dir")
 
 #### Select frequency file to load.   -- THIS IS REQUIRED
 freqs.file <- "freqs.dense.r"
 
 #### Set frequecies to trim.          --THIS IS REQUIRED
-db.element <- "seventyfive.pct"
+db.element <- "onehundred"
 
 #### SELECT percentage of unigrams to keep  -- THIS IS REQUIRED
 pct.to.keep <- 0.95
